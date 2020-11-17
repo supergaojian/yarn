@@ -154,8 +154,9 @@ export default class NpmResolver extends RegistryResolver {
   }
 
   async resolve(): Promise<Manifest> {
-    // lockfile
+    // lockfile信息
     const shrunk = this.request.getLocked('tarball');
+
     if (shrunk) {
       if (this.config.packBuiltPackages && shrunk.prebuiltVariants && shrunk._remote) {
         const prebuiltVariants = shrunk.prebuiltVariants;
@@ -172,6 +173,7 @@ export default class NpmResolver extends RegistryResolver {
         }
       }
     }
+
     if (
       shrunk &&
       shrunk._remote &&

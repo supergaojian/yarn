@@ -19,8 +19,17 @@ export const constants =
   typeof fs.constants !== 'undefined'
     ? fs.constants
     : {
+        /**
+         * 可读
+         */
         R_OK: fs.R_OK,
+        /**
+         * 可写
+         */
         W_OK: fs.W_OK,
+        /**
+         * 可执行
+         */
         X_OK: fs.X_OK,
       };
 
@@ -33,15 +42,30 @@ export const writeFile: (path: string, data: string | Buffer, options?: Object) 
 );
 export const readlink: (path: string, opts: void) => Promise<string> = promisify(fs.readlink);
 export const realpath: (path: string, opts: void) => Promise<string> = promisify(fs.realpath);
+/**
+ * 读取指定目录中的内容
+ */
 export const readdir: (path: string, opts: void) => Promise<Array<string>> = promisify(fs.readdir);
 export const rename: (oldPath: string, newPath: string) => Promise<void> = promisify(fs.rename);
+/**
+ * 确认指定目录权限
+ */
 export const access: (path: string, mode?: number) => Promise<void> = promisify(fs.access);
 export const stat: (path: string) => Promise<fs.Stats> = promisify(fs.stat);
+/**
+ * 创建文件夹
+ */
 export const mkdirp: (path: string) => Promise<void> = promisify(require('mkdirp'));
+/**
+ * 确认存在指定文件
+ */
 export const exists: (path: string) => Promise<boolean> = promisify(fs.exists, true);
 export const lstat: (path: string) => Promise<fs.Stats> = promisify(fs.lstat);
 export const chmod: (path: string, mode: number | string) => Promise<void> = promisify(fs.chmod);
 export const link: (src: string, dst: string) => Promise<fs.Stats> = promisify(fs.link);
+/**
+ * 根据正则匹配相关的文件路经
+ */
 export const glob: (path: string, options?: Object) => Promise<Array<string>> = promisify(globModule);
 export {unlink};
 
@@ -609,6 +633,11 @@ export async function hardlinkBulk(
   });
 }
 
+/**
+ * 使用指定编码格式读取指定路径文件
+ * @param {*} loc 文件路经
+ * @param {*} encoding 编码
+ */
 function _readFile(loc: string, encoding: string): Promise<any> {
   return new Promise((resolve, reject) => {
     fs.readFile(loc, encoding, function(err, content) {
@@ -621,6 +650,10 @@ function _readFile(loc: string, encoding: string): Promise<any> {
   });
 }
 
+/**
+ * 读取指定路径文件
+ * @param {*} loc 
+ */
 export function readFile(loc: string): Promise<string> {
   return _readFile(loc, 'utf8').then(normalizeOS);
 }
@@ -638,16 +671,25 @@ export async function readFileAny(files: Array<string>): Promise<?string> {
   return null;
 }
 
+/**
+ * 读取指定路径文件返回json
+ * @param {*} loc 文件路经
+ */
 export async function readJson(loc: string): Promise<Object> {
   return (await readJsonAndFile(loc)).object;
 }
 
+/**
+ * 读取json文件
+ * @param {*} loc 文件路经
+ */
 export async function readJsonAndFile(
   loc: string,
 ): Promise<{
   object: Object,
   content: string,
 }> {
+  // 返回文件字符串
   const file = await readFile(loc);
   try {
     return {
@@ -756,6 +798,10 @@ export async function getFileSizeOnDisk(loc: string): Promise<number> {
   return Math.ceil(size / blockSize) * blockSize;
 }
 
+/**
+ * 将文本中的 \r\n 转为 \n
+ * @param {*} body 文本
+ */
 export function normalizeOS(body: string): string {
   return body.replace(/\r\n/g, '\n');
 }
@@ -825,6 +871,11 @@ export async function readFirstAvailableStream(paths: Iterable<string>): Promise
   return null;
 }
 
+/**
+ * 获取第一个具有指定权限的目录
+ * @param {*} paths 
+ * @param {*} mode 
+ */
 export async function getFirstSuitableFolder(
   paths: Iterable<string>,
   mode: number = constants.W_OK | constants.X_OK, // eslint-disable-line no-bitwise

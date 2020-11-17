@@ -13,6 +13,9 @@ import ExoticResolver from './exotic-resolver.js';
 import * as util from '../../util/misc.js';
 import * as fs from '../../util/fs.js';
 
+/**
+ * file协议前缀
+ */
 export const FILE_PROTOCOL_PREFIX = 'file:';
 
 export default class FileResolver extends ExoticResolver {

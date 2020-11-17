@@ -41,6 +41,9 @@ const semver = require('semver');
 const uuid = require('uuid');
 const ssri = require('ssri');
 
+/**
+ * 一天的毫秒数
+ */
 const ONE_DAY = 1000 * 60 * 60 * 24;
 
 export type InstallCwdRequest = {
@@ -206,12 +209,28 @@ export class Install {
   }
 
   flags: Flags;
+  /**
+   * root package使用的仓库
+   * [yarn / npm]
+   */
   rootManifestRegistries: Array<RegistryNames>;
   registries: Array<RegistryNames>;
+  /**
+     * yarn.lock实例
+     */
   lockfile: Lockfile;
   resolutions: {[packageName: string]: string};
+  /**
+     * Config实例
+     */
   config: Config;
+  /**
+     * 日志实例
+     */
   reporter: Reporter;
+  /**
+   * PackageResolver
+   */
   resolver: PackageResolver;
   scripts: PackageInstallScripts;
   linker: PackageLinker;
@@ -223,6 +242,11 @@ export class Install {
    * Create a list of dependency requests from the current directories manifests.
    */
 
+  /**
+   * 从当前目录清单创建依赖项请求列表
+   * @param {*} excludePatterns
+   * @param {*} ignoreUnusedPatterns 
+   */
   async fetchRequestFromCwd(
     excludePatterns?: Array<string> = [],
     ignoreUnusedPatterns?: boolean = false,
@@ -241,6 +265,9 @@ export class Install {
       this.flags.includeWorkspaceDeps || this.flags.workspaceRootIsCwd ? this.config.lockfileFolder : this.config.cwd;
 
     // non-workspaces are always root, otherwise check for workspace root
+    /**
+     * 当前执行命令目录为workspace根目录
+     */
     const cwdIsRoot = !this.config.workspaceRootFolder || this.config.lockfileFolder === cwd;
 
     // exclude package names that are in install args
@@ -271,20 +298,27 @@ export class Install {
 
     for (const registry of Object.keys(registries)) {
       const {filename} = registries[registry];
+      /**
+       * package.json路经
+       */
       const loc = path.join(cwd, filename);
+
       if (!await fs.exists(loc)) {
         continue;
       }
 
       this.rootManifestRegistries.push(registry);
-
+      /**
+       * 执行命令所在的项目package.json
+       */
       const projectManifestJson = await this.config.readJson(loc);
-      await normalizeManifest(projectManifestJson, cwd, this.config, cwdIsRoot);
-
+      // 补齐package.json
+      await normalizeManifest(projectManifestJson, cwd, this.config, cwdIsRoot); 
       Object.assign(this.resolutions, projectManifestJson.resolutions);
       Object.assign(manifest, projectManifestJson);
 
       this.resolutionMap.init(this.resolutions);
+
       for (const packageName of Object.keys(this.resolutionMap.resolutionsByPackage)) {
         const optional = objectPath.has(manifest.optionalDependencies, packageName) && this.flags.ignoreOptional;
         for (const {pattern} of this.resolutionMap.resolutionsByPackage[packageName]) {
@@ -312,8 +346,9 @@ export class Install {
           if (excludeNames.indexOf(name) >= 0) {
             continue;
           }
-
+          
           let pattern = name;
+
           if (!this.lockfile.getLocked(pattern)) {
             // when we use --save we save the dependency to the lockfile with just the name rather than the
             // version combo
@@ -340,23 +375,48 @@ export class Install {
       }
 
       if (this.config.workspaceRootFolder) {
+        /**
+         * 存在workspace的package.json根目录
+         */
         const workspaceLoc = cwdIsRoot ? loc : path.join(this.config.lockfileFolder, filename);
+        /**
+         * package.json根目录
+         */
         const workspacesRoot = path.dirname(workspaceLoc);
-
+        /**
+         * 存在workspace的package.json
+         */
         let workspaceManifestJson = projectManifestJson;
         if (!cwdIsRoot) {
           // the manifest we read before was a child workspace, so get the root
+          // 如果当前执行命令目录不是workspace目录，则读取workspace目录下的package.json
           workspaceManifestJson = await this.config.readJson(workspaceLoc);
+          // 补齐package.json
           await normalizeManifest(workspaceManifestJson, workspacesRoot, this.config, true);
         }
 
+        /**
+         * 收集workspace下所有子项目的package.json
+         */
         const workspaces = await this.config.resolveWorkspaces(workspacesRoot, workspaceManifestJson);
+        /**
+         * workspace子项目package实例
+         */
         workspaceLayout = new WorkspaceLayout(workspaces, this.config);
 
         // add virtual manifest that depends on all workspaces, this way package hoisters and resolvers will work fine
+        /**
+         * workspace根项目dependencies依赖
+         */
         const workspaceDependencies = {...workspaceManifestJson.dependencies};
         for (const workspaceName of Object.keys(workspaces)) {
+          /**
+           * 子项目package.json
+           */
           const workspaceManifest = workspaces[workspaceName].manifest;
+          /**
+           * 将子项目放到根项目dependencies依赖中
+           */
           workspaceDependencies[workspaceName] = workspaceManifest.version;
 
           // include dependencies from all workspaces
@@ -366,6 +426,9 @@ export class Install {
             pushDeps('optionalDependencies', workspaceManifest, {hint: 'optional', optional: true}, true);
           }
         }
+        /**
+         * 生成针对workspace根项目的虚拟package.json
+         */
         const virtualDependencyManifest: Manifest = {
           _uid: '',
           name: `workspace-aggregator-${uuid.v4()}`,
@@ -381,6 +444,7 @@ export class Install {
         workspaceLayout.virtualManifestName = virtualDependencyManifest.name;
         const virtualDep = {};
         virtualDep[virtualDependencyManifest.name] = virtualDependencyManifest.version;
+        // 将新拼接后的workspace根目录放入workspaces集合中
         workspaces[virtualDependencyManifest.name] = {loc: workspacesRoot, manifest: virtualDependencyManifest};
 
         // ensure dependencies that should be excluded are stripped from the correct manifest
@@ -390,6 +454,7 @@ export class Install {
 
         const implicitWorkspaceDependencies = {...workspaceDependencies};
 
+        // 删除根目录依赖中和当前执行的子项目相同依赖的包
         for (const type of constants.OWNED_DEPENDENCY_TYPES) {
           for (const dependencyName of Object.keys(projectManifestJson[type] || {})) {
             delete implicitWorkspaceDependencies[dependencyName];
@@ -547,7 +612,11 @@ export class Install {
    * TODO description
    */
 
+  /**
+   * 初始化
+   */ 
   async init(): Promise<Array<string>> {
+    // 检查当前yarn版本
     this.checkUpdate();
 
     // warn if we have a shrinkwrap
@@ -567,6 +636,7 @@ export class Install {
 
     let flattenedTopLevelPatterns: Array<string> = [];
     const steps: Array<(curr: number, total: number) => Promise<{bailout: boolean} | void>> = [];
+
     const {
       requests: depRequests,
       patterns: rawPatterns,
@@ -577,6 +647,7 @@ export class Install {
     let topLevelPatterns: Array<string> = [];
 
     const artifacts = await this.integrityChecker.getArtifacts();
+
     if (artifacts) {
       this.linker.setArtifacts(artifacts);
       this.scripts.setArtifacts(artifacts);
@@ -595,11 +666,14 @@ export class Install {
     steps.push((curr: number, total: number) =>
       callThroughHook('resolveStep', async () => {
         this.reporter.step(curr, total, this.reporter.lang('resolvingPackages'), emoji.get('mag'));
-        await this.resolver.init(this.prepareRequests(depRequests), {
-          isFlat: this.flags.flat,
-          isFrozen: this.flags.frozenLockfile,
-          workspaceLayout,
-        });
+        await this.resolver.init(
+          this.prepareRequests(depRequests), 
+          {
+            isFlat: this.flags.flat,
+            isFrozen: this.flags.frozenLockfile,
+            workspaceLayout,
+          }
+        );
         topLevelPatterns = this.preparePatterns(rawPatterns);
         flattenedTopLevelPatterns = await this.flatten(topLevelPatterns);
         return {bailout: !this.flags.audit && (await this.bailout(topLevelPatterns, workspaceLayout))};
@@ -1064,6 +1138,9 @@ export class Install {
    * Check for updates every day and output a nag message if there's a newer version.
    */
 
+  /**
+   * 检查yarn版本更新
+   */ 
   checkUpdate() {
     if (this.config.nonInteractive) {
       // don't show upgrade dialog on CI or non-TTY terminals
@@ -1091,10 +1168,15 @@ export class Install {
     });
   }
 
+  /**
+   * 检查当前yarn版本和最新版本提示用户
+   */
   async _checkUpdate(): Promise<void> {
+    // 获取yan的最新版本号
     let latestVersion = await this.config.requestManager.request({
       url: constants.SELF_UPDATE_VERSION_URL,
     });
+
     invariant(typeof latestVersion === 'string', 'expected string');
     latestVersion = latestVersion.trim();
     if (!semver.valid(latestVersion)) {
@@ -1150,6 +1232,13 @@ export function setFlags(commander: Object) {
   commander.option('-T, --save-tilde', 'DEPRECATED');
 }
 
+/**
+ * 安装命令
+ * @param {*} config config实例
+ * @param {*} reporter 日志实例
+ * @param {*} flags 
+ * @param {*} lockfile lockfile实例
+ */
 export async function install(config: Config, reporter: Reporter, flags: Object, lockfile: Lockfile): Promise<void> {
   await wrapLifecycle(config, flags, async () => {
     const install = new Install(flags, config, reporter, lockfile);
@@ -1157,9 +1246,13 @@ export async function install(config: Config, reporter: Reporter, flags: Object,
   });
 }
 
+/**
+ * 执行指令
+ */
 export async function run(config: Config, reporter: Reporter, flags: Object, args: Array<string>): Promise<void> {
   let lockfile;
   let error = 'installCommandRenamed';
+
   if (flags.lockfile === false) {
     lockfile = new Lockfile();
   } else {
@@ -1195,13 +1288,22 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
   await install(config, reporter, flags, lockfile);
 }
 
+/**
+ * 按照package.json的script配置的生命周期顺序执行
+ * @param {*} config config实例
+ * @param {*} flags 
+ * @param {*} factory 回调
+ */
 export async function wrapLifecycle(config: Config, flags: Object, factory: () => Promise<void>): Promise<void> {
+  // 执行preinstall
   await config.executeLifecycleScript('preinstall');
 
   await factory();
 
   // npm behaviour, seems kinda funky but yay compatibility
+  // 执行install
   await config.executeLifecycleScript('install');
+  // 执行postinstall
   await config.executeLifecycleScript('postinstall');
 
   if (!config.production) {

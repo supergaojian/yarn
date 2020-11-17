@@ -18,6 +18,10 @@ export {default as parse} from './parse';
 export {default as stringify} from './stringify';
 
 type Dependencies = {
+  /**
+   * key: 包名
+   * value: 依赖版本 ^ ~
+   */
   [key: string]: string,
 };
 
@@ -40,14 +44,32 @@ type Integrity = {
 };
 
 export type LockManifest = {
+  /**
+   * 包名
+   */
   name: string,
+  /**
+   * 实际安装版本
+   */
   version: string,
+  /**
+   * 资源地址
+   */
   resolved: ?string,
+  /**
+   * 用于检查版本依赖是否发生变化
+   */
   integrity: ?string,
+  /**
+   * 使用的npm仓库
+   */
   registry: RegistryNames,
   uid: string,
   permissions: ?{[key: string]: boolean},
   optionalDependencies: ?Dependencies,
+  /**
+   * 依赖包
+   */
   dependencies: ?Dependencies,
   prebuiltVariants: ?{[key: string]: string},
 };
@@ -130,12 +152,24 @@ export default class Lockfile {
   }
 
   // source string if the `cache` was parsed
+  /**
+   * yarn.lock源内容
+   */
   source: string;
 
+  /**
+   * yarn.lock缓存内容
+   */
   cache: ?{
+    /**
+     * 包名 + 版本号 ~ ^
+     */
     [key: string]: LockManifest,
   };
 
+  /**
+   * 解析后结果
+   */
   parseResultType: ?ParseResultType;
 
   // if true, we're parsing an old yarn file and need to update integrity fields
@@ -154,15 +188,27 @@ export default class Lockfile {
     return false;
   }
 
+  /**
+   * 从指定目录读取yarn.lock返回LockFile实例
+   * @param {*} dir 项目目录
+   * @param {*} reporter 日志实例
+   */
   static async fromDirectory(dir: string, reporter?: Reporter): Promise<Lockfile> {
     // read the manifest in this directory
     const lockfileLoc = path.join(dir, LOCKFILE_FILENAME);
 
     let lockfile;
+    /**
+     * yarn.lock源内容 
+     */
     let rawLockfile = '';
+    /**
+     * yarn.lock解析后内容 
+     */
     let parseResult;
 
     if (await fs.exists(lockfileLoc)) {
+      // 存在yarn.lock
       rawLockfile = await fs.readFile(lockfileLoc);
       parseResult = parse(rawLockfile, lockfileLoc);
 
@@ -176,6 +222,7 @@ export default class Lockfile {
 
       lockfile = parseResult.object;
     } else if (reporter) {
+      // 不存在yarn.lock提示用户
       reporter.info(reporter.lang('noLockfileFound'));
     }
 
@@ -187,14 +234,18 @@ export default class Lockfile {
     return new Lockfile({cache: lockfile, source: rawLockfile, parseResultType: parseResult && parseResult.type});
   }
 
+  /**
+   * 返回指定依赖包版本的lock信息
+   * @param {*} pattern 依赖包+版本号
+   */
   getLocked(pattern: string): ?LockManifest {
     const cache = this.cache;
+
     if (!cache) {
       return undefined;
     }
 
     const shrunk = pattern in cache && cache[pattern];
-
     if (typeof shrunk === 'string') {
       return this.getLocked(shrunk);
     } else if (shrunk) {
@@ -205,6 +256,10 @@ export default class Lockfile {
     return undefined;
   }
 
+  /**
+   * 从lockfile中删除指定 依赖包+版本号 的相关信息
+   * @param {*} pattern 依赖包+版本号
+   */
   removePattern(pattern: string) {
     const cache = this.cache;
     if (!cache) {

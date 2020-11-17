@@ -98,9 +98,15 @@ export default class NpmRegistry extends Registry {
     extraneousRcFiles: Array<string>,
   ) {
     super(cwd, registries, requestManager, reporter, enableDefaultRc, extraneousRcFiles);
+    /**
+     * 存放依赖包文件名
+     */
     this.folder = 'node_modules';
   }
 
+  /**
+   * package.json文件名
+   */
   static filename = 'package.json';
 
   static escapeName(name: string): string {
@@ -250,6 +256,15 @@ export default class NpmRegistry extends Registry {
     };
   }
 
+  /**
+   * 逐级向父级查找所有的.yarnrc / .npmrc的文件路经和内容
+   * @param {*} filename 文件名
+   * @param {*} reporter 日志实例
+   * 
+   * @returns [0] = 是否为根节点目录
+   * @returns [1] = 文件目录
+   * @returns [2] = 文件内容
+   */
   async getPossibleConfigLocations(filename: string, reporter: Reporter): Promise<Array<[boolean, string, string]>> {
     let possibles = [];
 
@@ -314,6 +329,9 @@ export default class NpmRegistry extends Registry {
     return config;
   }
 
+  /**
+   * 加载.npmrc合并配置项
+   */
   async loadConfig(): Promise<void> {
     // docs: https://docs.npmjs.com/misc/config
     this.mergeEnv('npm_config_');

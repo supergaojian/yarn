@@ -20,6 +20,9 @@ export default class WorkspaceResolver extends BaseResolver {
   workspaceLayout: WorkspaceLayout;
 
   resolve(downloadedManifest: ?Manifest): Promise<Manifest> {
+    /**
+     * workspace子项目package.json和目录
+     */
     const workspace = this.workspaceLayout.getManifestByPattern(this.request.pattern);
     invariant(workspace, 'expected workspace');
     const {manifest, loc} = workspace;
@@ -30,6 +33,7 @@ export default class WorkspaceResolver extends BaseResolver {
     invariant(registry, 'expected reference');
     let hash = '';
     let registryRemote;
+
     if (downloadedManifest && manifest.version === downloadedManifest.version) {
       registryRemote = downloadedManifest._remote;
       invariant(registryRemote, 'missing remote info');

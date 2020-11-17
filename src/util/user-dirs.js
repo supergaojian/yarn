@@ -36,6 +36,9 @@ export function getCacheDir(): string {
   }
 }
 
+/**
+ * 返回yarn配置文件目录
+ */
 export function getConfigDir(): string {
   if (process.platform === 'win32') {
     // Use our prior fallback. Some day this could be

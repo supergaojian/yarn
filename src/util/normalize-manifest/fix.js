@@ -25,6 +25,9 @@ type Dict<T> = {
 
 type WarnFunction = (msg: string) => void;
 
+/**
+ * package.json补齐
+ */
 export default (async function(
   info: Dict<mixed>,
   moduleLoc: string,
@@ -164,6 +167,7 @@ export default (async function(
   // Validate that the bin entries reference only files within their package, and that
   // their name is a valid file name
   if (typeof info.bin === 'object' && info.bin !== null) {
+    // package.json配置了bin字段  
     const bin: Object = info.bin;
     for (const key of Object.keys(bin)) {
       const target = bin[key];

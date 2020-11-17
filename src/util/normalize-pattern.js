@@ -3,6 +3,11 @@
  * Explode and normalize a pattern into its name and range.
  */
 
+ /**
+  * 将依赖包的版本转为规范化的信息
+  * eq: concat-stream@^1.5.0 => { name: 'concat-stream', range: '^1.5.0', hasVersion: true }
+  * @param {*} pattern 
+  */
 export function normalizePattern(
   pattern: string,
 ): {

@@ -26,6 +26,28 @@ import handleSignals from '../util/signal-handler.js';
 import {boolify, boolifyWithDefault} from '../util/conversion.js';
 import {ProcessTermError} from '../errors';
 
+/******************************************** yarn执行入口 *****************************************************/
+
+/**
+ * TODO 临时global日志用于调试
+ */
+global.log = (...args) => {
+  let exit = true;
+  if (args.length > 1 && typeof args[args.length - 1] === 'boolean' && !args[args.length - 1]) {
+    exit = false;
+    args.pop();
+  }
+
+  console.log('----------------------------------------------------------')
+  args.forEach((arg, idx) => {
+    console.log(arg)
+  });
+  console.log('----------------------------------------------------------')
+  if (typeof exit === 'boolean' && exit === true) {
+    process.exit();
+  }
+}
+
 process.stdout.prependListener('error', err => {
   // swallow err only if downstream consumer process closed pipe early
   if (err.code === 'EPIPE' || err.code === 'ERR_STREAM_DESTROYED') {
@@ -34,6 +56,10 @@ process.stdout.prependListener('error', err => {
   throw err;
 });
 
+/**
+ * 向父级逐级找package.json所在的目录
+ * @param {string} base 目录
+ */
 function findProjectRoot(base: string): string {
   let prev = null;
   let dir = base;
@@ -50,13 +76,26 @@ function findProjectRoot(base: string): string {
   return base;
 }
 
+/**
+ * 执行cli命令
+ * @param {*} param0 
+ */
 export async function main({
   startArgs,
   args,
   endArgs,
 }: {
+  /**
+   * cli命令
+   */
   startArgs: Array<string>,
+  /**
+   * 子命令 & 参数
+   */
   args: Array<string>,
+  /**
+   * --之后的参数
+   */
   endArgs: Array<string>,
 }): Promise<void> {
   const collect = (val, acc) => {
@@ -138,20 +177,26 @@ export async function main({
 
   // if -v is the first command, then always exit after returning the version
   if (args[0] === '-v') {
-    console.log(version.trim());
+    // -v 返回当前yarn版本
     process.exitCode = 0;
     return;
   }
 
   // get command name
+  /**
+   * yarn子命令索引
+   */
   const firstNonFlagIndex = args.findIndex((arg, idx, arr) => {
+    // 默认认为 - 开头都是配置项
     const isOption = arg.startsWith('-');
+    // 取前一个元素
     const prev = idx > 0 && arr[idx - 1];
     const prevOption = prev && prev.startsWith('-') && commander.optionFor(prev);
     const boundToPrevOption = prevOption && (prevOption.optional || prevOption.required);
 
     return !isOption && !boundToPrevOption;
   });
+
   let preCommandArgs;
   let commandName = '';
   if (firstNonFlagIndex > -1) {
@@ -163,6 +208,7 @@ export async function main({
     args = [];
   }
 
+  // ----- 帮助相关 -----
   let isKnownCommand = Object.prototype.hasOwnProperty.call(commands, commandName);
   const isHelp = arg => arg === '--help' || arg === '-h';
   const helpInPre = preCommandArgs.findIndex(isHelp);
@@ -183,6 +229,7 @@ export async function main({
     setHelpMode();
   }
 
+  // 默认使用install命令
   if (!commandName) {
     commandName = 'install';
     isKnownCommand = true;
@@ -192,11 +239,15 @@ export async function main({
     args.splice(0, 1, 'set-version');
     isKnownCommand = true;
   }
+  // 未知的命令使用run
   if (!isKnownCommand) {
     // if command is not recognized, then set default to `run`
     args.unshift(commandName);
     commandName = 'run';
   }
+  /**
+   * 确定最终要执行的指令
+   */ 
   const command = commands[commandName];
 
   let warnAboutRunDashDash = false;
@@ -245,8 +296,10 @@ export async function main({
   console.assert(commander.args[0] === 'this-arg-will-get-stripped-later');
   commander.args.shift();
 
-  //
   const Reporter = commander.json ? JSONReporter : ConsoleReporter;
+  /**
+   * 日志实例
+   */
   const reporter = new Reporter({
     emoji: process.stdout.isTTY && commander.emoji,
     verbose: commander.verbose,
@@ -260,8 +313,14 @@ export async function main({
     reporter.close();
   };
 
+  /**
+   * 每秒都会查看当前heap堆占用内存
+   */
   reporter.initPeakMemoryCounter();
 
+  /**
+   * config实例
+   */
   const config = new Config(reporter);
   const outputWrapperEnabled = boolifyWithDefault(process.env.YARN_WRAP_OUTPUT, true);
   const shouldWrapOutput = outputWrapperEnabled && !commander.json && command.hasWrapper(commander, commander.args);
@@ -271,6 +330,7 @@ export async function main({
   }
 
   if (commander.nodeVersionCheck && !semver.satisfies(process.versions.node, constants.SUPPORTED_NODE_VERSIONS)) {
+    // nodejs版本校验
     reporter.warn(reporter.lang('unsupportedNodeVersion', process.versions.node, constants.SUPPORTED_NODE_VERSIONS));
   }
 
@@ -288,10 +348,13 @@ export async function main({
 
   //
   if (!commander.offline && network.isOffline()) {
+    // 如果用户没有声明离线环境，且当前处于离线环境则提示用户
     reporter.warn(reporter.lang('networkWarning'));
   }
 
-  //
+  /**
+   * 实际执行命令
+   */
   const run = (): Promise<void> => {
     invariant(command, 'missing command');
 
@@ -515,6 +578,9 @@ export async function main({
     return errorReportLoc;
   }
 
+  /**
+   * package.json所在路经
+   */
   const cwd = command.shouldRunInCurrentCwd ? commander.cwd : findProjectRoot(commander.cwd);
 
   const folderOptionKeys = ['linkFolder', 'globalFolder', 'preferredCacheFolder', 'cacheFolder', 'modulesFolder'];
@@ -522,7 +588,9 @@ export async function main({
   // Resolve all folder options relative to cwd
   const resolvedFolderOptions = {};
   folderOptionKeys.forEach(folderOptionKey => {
+    // 用户指定文件路径
     const folderOption = commander[folderOptionKey];
+    // 找到指定文件的绝对路径
     const resolvedFolderOption = folderOption ? path.resolve(commander.cwd, folderOption) : folderOption;
     resolvedFolderOptions[folderOptionKey] = resolvedFolderOption;
   });
@@ -572,6 +640,7 @@ export async function main({
       reporter.verbose(`current time: ${new Date().toISOString()}`);
 
       const mutex: mixed = commander.mutex;
+
       if (mutex && typeof mutex === 'string') {
         const separatorLoc = mutex.indexOf(':');
         let mutexType;
@@ -620,11 +689,24 @@ export async function main({
     });
 }
 
+/**
+ * yarn命令入口方法
+ */
 async function start(): Promise<void> {
+  // 获取yarnrc文件配置
+  // process.cwd 当前执行命令项目目录
+  // process.argv 用户指定的yarn命令和参数
   const rc = getRcConfigForCwd(process.cwd(), process.argv.slice(2));
+
+  /**
+   * .yarnrc中存在配置了yarn-path路径
+   */
   const yarnPath = rc['yarn-path'] || rc['yarnPath'];
 
   if (yarnPath && !boolifyWithDefault(process.env.YARN_IGNORE_PATH, false)) {
+    /**
+     * yarn 命令 & 参数
+     */
     const argv = process.argv.slice(2);
     const opts = {stdio: 'inherit', env: Object.assign({}, process.env, {YARN_IGNORE_PATH: 1})};
     let exitCode = 0;
@@ -635,13 +717,15 @@ async function start(): Promise<void> {
     });
 
     try {
-      if (/\.[cm]?js$/.test(yarnPath)) {
+      if (yarnPath.endsWith(`.js`)) {
+        // 以js结尾，执行js
         exitCode = await spawnp(process.execPath, [yarnPath, ...argv], opts);
       } else {
         exitCode = await spawnp(yarnPath, argv, opts);
       }
     } catch (firstError) {
       try {
+        // 异常情况使用fork再次执行一遍
         exitCode = await forkp(yarnPath, argv, opts);
       } catch (error) {
         throw firstError;
@@ -650,10 +734,25 @@ async function start(): Promise<void> {
 
     process.exitCode = exitCode;
   } else {
+    // 以非js结尾执行cli
     // ignore all arguments after a --
+    /**
+     * -- 索引位置
+     */
     const doubleDashIndex = process.argv.findIndex(element => element === '--');
+    /**
+     * 前两个参数为node地址、yarn文件地址
+     */
     const startArgs = process.argv.slice(0, 2);
+    /**
+     * yarn子命令&参数
+     * 如果存在 -- 则取 -- 之前部分
+     * 如果不存在 -- 则取全部
+     */
     const args = process.argv.slice(2, doubleDashIndex === -1 ? process.argv.length : doubleDashIndex);
+    /**
+     * yarn子命令透传参数
+     */
     const endArgs = doubleDashIndex === -1 ? [] : process.argv.slice(doubleDashIndex);
 
     await main({startArgs, args, endArgs});
@@ -662,6 +761,9 @@ async function start(): Promise<void> {
 
 // When this module is compiled via Webpack, its child
 // count will be 0 since it is a single-file bundle.
+/**
+ * 通过webpack编译时，children个数为0
+ */
 export const autoRun = module.children.length === 0;
 
 if (require.main === module) {

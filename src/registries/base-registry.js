@@ -35,14 +35,35 @@ export default class BaseRegistry {
     enableDefaultRc: boolean,
     extraneousRcFiles: Array<string>,
   ) {
+    /**
+     * 日志实例
+     */  
     this.reporter = reporter;
+    /**
+     * 请求实例
+     */
     this.requestManager = requestManager;
+    /**
+     * yarn/npm仓库实例
+     */
     this.registries = registries;
     this.config = {};
+    /**
+     * 依赖包文件夹名
+     */
     this.folder = '';
     this.token = '';
+    /**
+     * 当前执行命令 的 项目 存放 依赖包 路经
+     */
     this.loc = '';
+    /**
+     * 当前执行命令的路经
+     */
     this.cwd = cwd;
+    /**
+     * 使用默认rc标志
+     */
     this.enableDefaultRc = enableDefaultRc;
     this.extraneousRcFiles = extraneousRcFiles;
   }
@@ -102,6 +123,9 @@ export default class BaseRegistry {
     }, []);
   }
 
+  /**
+   * 加载.npmrc  /  .yarnrc合并配置项
+   */
   loadConfig(): Promise<void> {
     return Promise.resolve();
   }
@@ -121,8 +145,13 @@ export default class BaseRegistry {
     });
   }
 
+  /**
+   * 初始化仓库
+   * @param {*} overrides 
+   */
   async init(overrides: Object = {}): Promise<void> {
     this.mergeEnv('yarn_');
+    
     await this.loadConfig();
 
     for (const override of Object.keys(overrides)) {
@@ -152,6 +181,10 @@ export default class BaseRegistry {
     }
   }
 
+  /**
+   * 从执行命令参数中合并配置
+   * @param {*} prefix 
+   */
   mergeEnv(prefix: string) {
     // try environment variables
     for (const envKey in process.env) {

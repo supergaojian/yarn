@@ -183,6 +183,7 @@ export function shouldCheck(
   manifest: PartialManifest,
   options: {ignoreEngines: boolean, ignorePlatform: boolean},
 ): boolean {
+
   return (
     shouldCheckCpu(manifest.cpu, options.ignorePlatform) ||
     shouldCheckPlatform(manifest.os, options.ignorePlatform) ||

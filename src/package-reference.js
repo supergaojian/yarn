@@ -40,12 +40,24 @@ export default class PackageReference {
   }
 
   requests: Array<PackageRequest>;
+  /**
+   * yarn.lock实例
+   */
   lockfile: Lockfile;
+  /**
+   * config实例
+   */
   config: Config;
 
   isPlugnplay: boolean;
   level: number;
+  /**
+   * 依赖包名
+   */
   name: string;
+  /**
+   * 指定的版本
+   */
   version: string;
   uid: string;
   optional: ?boolean;

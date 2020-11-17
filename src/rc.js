@@ -19,10 +19,17 @@ const PATH_KEYS = new Set([
 ]);
 
 // given a cwd, load all .yarnrc files relative to it
+/**
+ * 从当前项目路经中获取rc配置
+ * @param {string} cwd 当前项目路经
+ * @param {string[]} args 用户cli参数
+ */
 export function getRcConfigForCwd(cwd: string, args: Array<string>): {[key: string]: string} {
   const config = {};
 
   if (args.indexOf('--no-default-rc') === -1) {
+    // 如果用户没有指定不使用默认rc文件
+    // 则遍历整条链路下的所有 .yarnrc 文件
     Object.assign(
       config,
       rcUtil.findRc('yarn', cwd, (fileText, filePath) => {
@@ -31,9 +38,11 @@ export function getRcConfigForCwd(cwd: string, args: Array<string>): {[key: stri
     );
   }
 
+  // 如果用户配置了 --use-yarnrc 则取下一个参数读取对应的配置文件
   for (let index = args.indexOf('--use-yarnrc'); index !== -1; index = args.indexOf('--use-yarnrc', index + 1)) {
     const value = args[index + 1];
 
+    // 以 - 开头会认为是yarn参数
     if (value && value.charAt(0) !== '-') {
       Object.assign(config, loadRcFile(readFileSync(value, 'utf8'), value));
     }
@@ -52,10 +61,16 @@ export function getRcConfigForFolder(cwd: string): {[key: string]: string} {
   return loadRcFile(fileText, filePath);
 }
 
+/**
+ * 读取rc文件
+ * @param {*} fileText 文件内容字符串
+ * @param {*} filePath 文件路经
+ */
 function loadRcFile(fileText: string, filePath: string): {[key: string]: string} {
   let {object: values} = parse(fileText, filePath);
 
   if (filePath.match(/\.yml$/) && typeof values.yarnPath === 'string') {
+    // yml 文件
     values = {'yarn-path': values.yarnPath};
   }
 

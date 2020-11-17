@@ -53,10 +53,19 @@ export type ConfigOptions = {
   disablePnp?: boolean,
   offlineCacheFolder?: string,
 
+  /**
+   * 使用默认rc文件标志
+   */
   enableDefaultRc?: boolean,
+  /**
+   * 无效yarnrc文件路径
+   */
   extraneousYarnrcFiles?: Array<string>,
 
   // Loosely compare semver for invalid cases like "0.01.0"
+  /**
+   * 非严格比较版本，例：0.01.0有效
+   */
   looseSemver?: ?boolean,
 
   httpProxy?: ?string,
@@ -99,17 +108,34 @@ function sortObject(object: Object): Object {
 
 export default class Config {
   constructor(reporter: Reporter) {
+    /**
+     * 版本约束
+     */
     this.constraintResolver = new ConstraintResolver(this, reporter);
+    /**
+     * 请求管理
+     */
     this.requestManager = new RequestManager(reporter);
+    /**
+     * 日志实例
+     */
     this.reporter = reporter;
     this._init({});
   }
 
-  //
+  /**
+   * 使用默认rc文件标志
+   */
   enableDefaultRc: boolean;
+  /**
+   * 无效yarnrc文件路径
+   */
   extraneousYarnrcFiles: Array<string>;
 
-  //
+  /**
+   * 非严格比较版本，例：0.01.0有效
+   * 默认true
+   */
   looseSemver: boolean;
   offline: boolean;
   preferOffline: boolean;
@@ -124,46 +150,76 @@ export default class Config {
   // cache packages in offline mirror folder as new .tgz files
   packBuiltPackages: boolean;
 
-  //
+  /**
+   * yarn link的包
+   */
   linkedModules: Array<string>;
 
-  //
+  /**
+   * yarn link目录
+   */
   linkFolder: string;
 
-  //
+  /**
+   * yarn global目录
+   */
   globalFolder: string;
 
-  //
+  /**
+   * 版本约束实例
+   */
   constraintResolver: ConstraintResolver;
 
+  /**
+   * 并发执行的最大网络请求数
+   */
   networkConcurrency: number;
 
+  /**
+   * 可同时执行的最大子进程数量
+   */
   childConcurrency: number;
 
-  //
+  /**
+   * 下载软件包时使用的HTTP超时
+   */
   networkTimeout: number;
 
-  //
+  /**
+   * 请求管理实例
+   */
   requestManager: RequestManager;
 
   //
   modulesFolder: ?string;
 
-  //
+  /**
+   * yarn缓存根目录
+   */
   _cacheRootFolder: string;
 
-  //
+  /**
+   * 依赖包缓存目录
+   */
   cacheFolder: string;
 
   //
   tempFolder: string;
 
-  //
+  /**
+   * 日志实例
+   */
   reporter: Reporter;
 
   // Whether we should ignore executing lifecycle scripts
+  /**
+   * 忽略hook标志
+   */
   ignoreScripts: boolean;
 
+  /**
+   * production环境变量标志
+   */
   production: boolean;
 
   disablePrepublish: boolean;
@@ -177,18 +233,34 @@ export default class Config {
   plugnplayUnplugged: Array<string>;
   plugnplayPurgeUnpluggedPackages: boolean;
 
+  /**
+   * 开启workspaces标志
+   */
   workspacesEnabled: boolean;
   workspacesNohoistEnabled: boolean;
 
   offlineCacheFolder: ?string;
 
-  //
+  /**
+   * 当前执行命令的路经（绝对路径）
+   */
   cwd: string;
+  /**
+   * workspaces所在目录
+   */
   workspaceRootFolder: ?string;
+  /**
+   * yarn.lock所在目录，优先和workspace同级
+   */
   lockfileFolder: string;
 
-  //
+  /**
+   * yarn/npm仓库实例
+   */
   registries: ConfigRegistries;
+  /**
+   * yarn/npm依赖包存放路经
+   */
   registryFolders: Array<string>;
 
   //
@@ -196,7 +268,9 @@ export default class Config {
     [key: string]: ?Promise<any>,
   };
 
-  //
+  /**
+   * 当前执行命令
+   */
   commandName: string;
 
   focus: boolean;
@@ -249,10 +323,15 @@ export default class Config {
    * Initialise config. Fetch registry options, find package roots.
    */
 
+  /**
+   * 更新配置项
+   * @param {*} opts 
+   */ 
   async init(opts: ConfigOptions = {}): Promise<void> {
     this._init(opts);
 
     this.workspaceRootFolder = await this.findWorkspaceRoot(this.cwd);
+    // yarn.lock所在目录，优先和workspace同级
     this.lockfileFolder = this.workspaceRootFolder || this.cwd;
 
     // using focus in a workspace root is not allowed
@@ -266,9 +345,12 @@ export default class Config {
     }
 
     this.linkedModules = [];
-
+    /**
+     * yarn link的包
+     */
     let linkedModules;
     try {
+      // 找出所有yarn link的目录 
       linkedModules = await fs.readdir(this.linkFolder);
     } catch (err) {
       if (err.code === 'ENOENT') {
@@ -283,6 +365,7 @@ export default class Config {
 
       if (dir[0] === '@') {
         // it's a scope, not a package
+        // 以@开头是一个命名空间，应该深入遍历
         const scopedLinked = await fs.readdir(linkedPath);
         this.linkedModules.push(...scopedLinked.map(scopedDir => path.join(dir, scopedDir)));
       } else {
@@ -290,6 +373,7 @@ export default class Config {
       }
     }
 
+    // 分别实例化npm、yarn仓库实例
     for (const key of Object.keys(registries)) {
       const Registry = registries[key];
 
@@ -307,7 +391,7 @@ export default class Config {
       await registry.init({
         registry: opts.registry,
       });
-
+      
       this.registries[key] = registry;
       if (this.registryFolders.indexOf(registry.folder) === -1) {
         this.registryFolders.push(registry.folder);
@@ -331,6 +415,8 @@ export default class Config {
 
     const httpProxy = opts.httpProxy || this.getOption('proxy');
     const httpsProxy = opts.httpsProxy || this.getOption('https-proxy');
+
+    // 更新 请求实例配置
     this.requestManager.setOptions({
       userAgent: String(this.getOption('user-agent')),
       httpProxy: httpProxy === false ? false : String(httpProxy || ''),
@@ -379,6 +465,11 @@ export default class Config {
       this._cacheRootFolder = String(cacheRootFolder);
     }
 
+    /**
+     * 当前package.json
+     * 如果是单项目就是当前package.json
+     * 如果是workspace则是workspace根目录的package.json
+     */
     const manifest = await this.maybeReadManifest(this.lockfileFolder);
 
     const plugnplayByEnv = this.getOption('plugnplay-override');
@@ -430,6 +521,7 @@ export default class Config {
     //init & create cacheFolder, tempFolder
     this.cacheFolder = path.join(this._cacheRootFolder, 'v' + String(constants.CACHE_VERSION));
     this.tempFolder = opts.tempFolder || path.join(this.cacheFolder, '.tmp');
+
     await fs.mkdirp(this.cacheFolder);
     await fs.mkdirp(this.tempFolder);
 
@@ -448,6 +540,10 @@ export default class Config {
     }
   }
 
+  /**
+   * 初始化配置项
+   * @param {*} opts 
+   */
   _init(opts: ConfigOptions) {
     this.registryFolders = [];
     this.linkedModules = [];
@@ -497,6 +593,10 @@ export default class Config {
    * Generate a name suitable as unique filesystem identifier for the specified package.
    */
 
+  /**
+   * 拼接依赖包唯一字符串
+   * npm源 - 包名 - 版本 - integrity
+   */ 
   generateUniquePackageSlug(pkg: PackageReference): string {
     let slug = pkg.name;
 
@@ -582,6 +682,11 @@ export default class Config {
    * passed.
    */
 
+  /**
+   * 执行package.json配置的生命周期
+   * @param {*} commandName 
+   * @param {*} cwd 
+   */ 
   executeLifecycleScript(commandName: string, cwd?: string): Promise<void> {
     if (this.ignoreScripts) {
       return Promise.resolve();
@@ -644,6 +749,11 @@ export default class Config {
    * file when we've successfully setup a folder so use this as a marker.
    */
 
+  /**
+   * 了解文件夹输入是否为有效的模块文件夹。
+   * 成功设置文件夹后，我们将输出一个yarn元数据文件，因此将其用作标记。
+   * @param {*} dest 
+   */
   async isValidModuleDest(dest: string): Promise<boolean> {
     if (!await fs.exists(dest)) {
       return false;
@@ -697,6 +807,12 @@ export default class Config {
    * 1. manifest file in cache
    * 2. manifest file in registry
    */
+  /**
+   * 查询package.json/yarn.json目录
+   * @param {*} dir 
+   * @param {*} priorityRegistry 
+   * @param {*} isRoot 
+   */
   async maybeReadManifest(dir: string, priorityRegistry?: RegistryNames, isRoot?: boolean = false): Promise<?Manifest> {
     const metadataLoc = path.join(dir, constants.METADATA_FILENAME);
 
@@ -745,19 +861,32 @@ export default class Config {
    * Try and find package info with the input directory and registry.
    */
 
+  /**
+   * 查找package.json和yarn.json
+   * @param {*} dir 
+   * @param {*} registry 
+   * @param {*} isRoot 
+   */ 
   async tryManifest(dir: string, registry: RegistryNames, isRoot: boolean): Promise<?Manifest> {
     const {filename} = registries[registry];
     const loc = path.join(dir, filename);
     if (await fs.exists(loc)) {
+      // 如果存在文件则读取json对象
       const data = await this.readJson(loc);
       data._registry = registry;
       data._loc = loc;
+      // 返回补齐后的json
       return normalizeManifest(data, dir, this, isRoot);
     } else {
       return null;
     }
   }
 
+  /**
+   * 查找指定目录下的package.json和yarn.json
+   * @param {*} dir 
+   * @param {*} isRoot 
+   */
   async findManifest(dir: string, isRoot: boolean): Promise<?Manifest> {
     for (const registry of registryNames) {
       const manifest = await this.tryManifest(dir, registry, isRoot);
@@ -770,15 +899,25 @@ export default class Config {
     return null;
   }
 
+  /**
+   * 查找workspace根目录
+   * @param {*} initial 
+   */
   async findWorkspaceRoot(initial: string): Promise<?string> {
     let previous = null;
     let current = path.normalize(initial);
     if (!await fs.exists(current)) {
+      // 路经不存在报错
       throw new MessageError(this.reporter.lang('folderMissing', current));
     }
 
+    // 循环逐步向父级目录查找访问package.json\yarn.json是否配置workspace
+    // 如果任意层级配置了workspace，则返回该json所在的路经
     do {
+      // 取出package.json\yarn.json
       const manifest = await this.findManifest(current, true);
+
+      // 取出workspace配置
       const ws = extractWorkspaces(manifest);
       if (ws && ws.packages) {
         const relativePath = path.relative(current, initial);
@@ -796,26 +935,44 @@ export default class Config {
     return null;
   }
 
+  /**
+   * 收集workspace下所有的package.json
+   * @param {*} root 存在workspace的package.json根目录
+   * @param {*} rootManifest 存在workspace的package.json
+   */
   async resolveWorkspaces(root: string, rootManifest: Manifest): Promise<WorkspacesManifestMap> {
     const workspaces = {};
     if (!this.workspacesEnabled) {
       return workspaces;
     }
 
+    /**
+     * workspace配置
+     */
     const ws = this.getWorkspaces(rootManifest, true);
+    /**
+     * workspace配置的packages字段
+     */
     const patterns = ws && ws.packages ? ws.packages : [];
 
     if (!Array.isArray(patterns)) {
+      // packages字段必须数组
       throw new MessageError(this.reporter.lang('workspacesSettingMustBeArray'));
     }
 
+    /**
+     * package.json|yarn.json
+     */
     const registryFilenames = registryNames
       .map(registryName => this.registries[registryName].constructor.filename)
       .join('|');
+
     const trailingPattern = `/+(${registryFilenames})`;
     // anything under folder (node_modules) should be ignored, thus use the '**' instead of shallow match "*"
     const ignorePatterns = this.registryFolders.map(folder => `/${folder}/**/+(${registryFilenames})`);
-
+    /**
+     * 根据用户配置workspace字段匹配根目录下所有相关的项目目录
+     */ 
     const files = await Promise.all(
       patterns.map(pattern =>
         fs.glob(pattern.replace(/\/?$/, trailingPattern), {
@@ -826,23 +983,32 @@ export default class Config {
     );
 
     for (const file of new Set([].concat(...files))) {
+      /**
+       * 子项目地址
+       */
       const loc = path.join(root, path.dirname(file));
+      /**
+       * 子项目package.json
+       */
       const manifest = await this.findManifest(loc, false);
-
+      
       if (!manifest) {
         continue;
       }
 
       if (!manifest.name) {
+        // 子项目package.json必须配置name
         this.reporter.warn(this.reporter.lang('workspaceNameMandatory', loc));
         continue;
       }
       if (!manifest.version) {
+        // 子项目package.json必须配置version
         this.reporter.warn(this.reporter.lang('workspaceVersionMandatory', loc));
         continue;
       }
 
       if (Object.prototype.hasOwnProperty.call(workspaces, manifest.name)) {
+        /// 子项目name不能重复
         throw new MessageError(this.reporter.lang('workspaceNameDuplicate', manifest.name));
       }
 
@@ -853,11 +1019,20 @@ export default class Config {
   }
 
   // workspaces functions
+
+  /**
+   * 返回package.json的workspace配置
+   * @param {*} manifest package.json
+   * @param {*} shouldThrow 是否抛出异常
+   */
   getWorkspaces(manifest: ?Manifest, shouldThrow: boolean = false): ?WorkspacesConfig {
     if (!manifest || !this.workspacesEnabled) {
       return undefined;
     }
 
+    /**
+     * workspace配置
+     */
     const ws = extractWorkspaces(manifest);
 
     if (!ws) {
@@ -871,11 +1046,13 @@ export default class Config {
 
     // packages
     if (wsCopy.packages && wsCopy.packages.length > 0 && !manifest.private) {
+      // workspace所在的package.json中必须配置private为true
       errors.push(this.reporter.lang('workspacesRequirePrivateProjects'));
       wsCopy = undefined;
     }
     // nohoist
     if (wsCopy && wsCopy.nohoist && wsCopy.nohoist.length > 0) {
+      // 用户配置了nohoist，也必须配置private为true
       if (!this.workspacesNohoistEnabled) {
         warnings.push(this.reporter.lang('workspacesNohoistDisabled', manifest.name));
         wsCopy.nohoist = undefined;
@@ -886,6 +1063,7 @@ export default class Config {
     }
 
     if (errors.length > 0 && shouldThrow) {
+      // 存在报错返回
       throw new MessageError(errors.join('\n'));
     }
 
@@ -962,6 +1140,11 @@ export default class Config {
    * of a syntax error.
    */
 
+  /**
+   * 读取指定路经的json文件
+   * @param {*} loc 文件路经
+   * @param {*} factory 读取文件回调
+   */ 
   readJson(loc: string, factory: (filename: string) => Promise<Object> = fs.readJson): Promise<Object> {
     try {
       return factory(loc);
@@ -981,12 +1164,18 @@ export default class Config {
   }
 }
 
+/**
+ * 取出packageJson的workspaces配置
+ * @param {*} manifest packageJson
+ */
 export function extractWorkspaces(manifest: ?Manifest): ?WorkspacesConfig {
   if (!manifest || !manifest.workspaces) {
+    // 没有相关配置返回
     return undefined;
   }
 
   if (Array.isArray(manifest.workspaces)) {
+    // 如果是数组，包裹后返回
     return {packages: manifest.workspaces};
   }
 

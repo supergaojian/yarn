@@ -38,7 +38,13 @@ export default class ResolutionMap {
   }
 
   resolutionsByPackage: ResolutionInternalMap;
+  /**
+   * config实例
+   */
   config: Config;
+  /**
+   * 日志实例
+   */
   reporter: Reporter;
   delayQueue: Set<DependencyRequestPattern>;
 

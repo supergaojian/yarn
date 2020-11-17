@@ -88,6 +88,10 @@ export async function fetchOneRemote(
 }
 
 function fetchOne(ref: PackageReference, config: Config): Promise<FetchedMetadata> {
+  /**
+   * 拼接依赖包唯一字符串
+   * npm源 - 包名 - 版本 - integrity
+   */ 
   const dest = config.generateModuleCachePath(ref);
 
   return fetchOneRemote(ref.remote, ref.name, ref.version, dest, config);
@@ -106,6 +110,11 @@ async function maybeFetchOne(ref: PackageReference, config: Config): Promise<?Fe
   }
 }
 
+/**
+ * 请求全部依赖包
+ * @param {*} pkgs 
+ * @param {*} config 
+ */
 export function fetch(pkgs: Array<Manifest>, config: Config): Promise<Array<Manifest>> {
   const pkgsPerDest: Map<string, PackageReference> = new Map();
   pkgs = pkgs.filter(pkg => {
@@ -113,6 +122,10 @@ export function fetch(pkgs: Array<Manifest>, config: Config): Promise<Array<Mani
     if (!ref) {
       return false;
     }
+    /**
+     * 拼接缓存依赖包路径
+     * 缓存路径 + npm源-包名-版本-integrity + node_modules + 包名
+     */
     const dest = config.generateModuleCachePath(ref);
     const otherPkg = pkgsPerDest.get(dest);
     if (otherPkg) {

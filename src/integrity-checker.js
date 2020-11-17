@@ -74,6 +74,9 @@ export default class InstallationIntegrityChecker {
     this.config = config;
   }
 
+  /**
+   * config实例
+   */
   config: Config;
 
   /**
@@ -100,6 +103,7 @@ export default class InstallationIntegrityChecker {
     } else if (this.config.enableMetaFolder) {
       return path.join(this.config.lockfileFolder, constants.META_FOLDER);
     } else {
+      // 返回yarn.lock所在目录的node_modules文件地址
       return path.join(this.config.lockfileFolder, constants.NODE_MODULES_FOLDER);
     }
   }
@@ -108,7 +112,15 @@ export default class InstallationIntegrityChecker {
    * Get the full path of the yarn-integrity file.
    */
 
+  /**
+   * 返回
+   * yarn.lock所在目录的node_modules文件地址
+   * arn.lock所在目录的node_modules/.yarn-integrity文件地址
+   */ 
   async _getIntegrityFileLocation(): Promise<IntegrityHashLocation> {
+    /**
+     * 返回yarn.lock所在目录的node_modules文件地址
+     */
     const locationFolder = this._getIntegrityFileFolder();
     const locationPath = path.join(locationFolder, constants.INTEGRITY_FILENAME);
 
@@ -411,11 +423,13 @@ export default class InstallationIntegrityChecker {
    */
   async getArtifacts(): Promise<?InstallArtifacts> {
     const loc = await this._getIntegrityFileLocation();
+
     if (!loc.exists) {
       return null;
     }
 
     const expectedRaw = await fs.readFile(loc.locationPath);
+
     let expected: ?IntegrityFile;
     try {
       expected = JSON.parse(expectedRaw);

@@ -8,10 +8,14 @@ import fix from './fix.js';
 
 const path = require('path');
 
+/**
+ * 补齐package.json
+ */
 export default (async function(info: Object, moduleLoc: string, config: Config, isRoot: boolean): Promise<Manifest> {
   // create human readable name
   const {name, version} = info;
   let human: ?string;
+  // 解析json 拼接 ${name}@${version}
   if (typeof name === 'string') {
     human = name;
   }
@@ -29,6 +33,7 @@ export default (async function(info: Object, moduleLoc: string, config: Config, 
     config.reporter.warn(msg);
   }
 
+  // 补齐package.json
   await fix(info, moduleLoc, config.reporter, warn, config.looseSemver);
   resolveRelative(info, moduleLoc, config.lockfileFolder);
 

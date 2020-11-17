@@ -186,7 +186,13 @@ export default class Audit {
     this.options = options;
   }
 
+  /**
+   * config实例
+   */
   config: Config;
+  /**
+   * 日志实例
+   */
   reporter: Reporter;
   options: AuditOptions;
   auditData: AuditReport;

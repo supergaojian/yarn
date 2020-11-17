@@ -1,6 +1,10 @@
 /* @flow */
 /* eslint max-len: 0 */
 
+/**
+ * 语言包
+ */
+
 const messages = {
   upToDate: 'Already up-to-date.',
   folderInSync: 'Folder in sync.',

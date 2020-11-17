@@ -26,16 +26,33 @@ export type ResolverOptions = {|
 
 export default class PackageResolver {
   constructor(config: Config, lockfile: Lockfile, resolutionMap: ResolutionMap = new ResolutionMap(config)) {
+    /**
+     * 依赖包被引用的所有：包名+版本号的集合
+     */
     this.patternsByPackage = map();
+    /**
+     * 当前请求的依赖包
+     */
     this.fetchingPatterns = new Set();
     this.fetchingQueue = new BlockingQueue('resolver fetching');
+    /**
+     * KV-Map key: 依赖包+版本 value: 对应的package.json
+     */
     this.patterns = map();
     this.resolutionMap = resolutionMap;
     this.usedRegistries = new Set();
     this.flat = false;
-
+    /**
+     * 日志实例
+     */
     this.reporter = config.reporter;
+    /**
+     * yarn.lock对象
+     */
     this.lockfile = lockfile;
+    /**
+     * config实例
+     */
     this.config = config;
     this.delayedResolveQueue = [];
   }
@@ -68,6 +85,9 @@ export default class PackageResolver {
   requestManager: RequestManager;
 
   // list of patterns associated with a package
+  /**
+   * 依赖包被引用的所有：包名+版本号的集合
+   */
   patternsByPackage: {
     [packageName: string]: Array<string>,
   };
@@ -76,6 +96,9 @@ export default class PackageResolver {
   lockfile: Lockfile;
 
   // a map of dependency patterns to packages
+  /**
+   * KV-Map key: 依赖包+版本 value: 对应的package.json
+   */
   patterns: {
     [packagePattern: string]: Manifest,
   };
@@ -362,8 +385,14 @@ export default class PackageResolver {
    * TODO description
    */
 
+
+  /**
+   * 删除指定依赖包和对应版本
+   * @param {*} pattern 
+   */
   removePattern(pattern: string) {
     const pkg = this.patterns[pattern];
+
     if (!pkg) {
       return;
     }
@@ -381,6 +410,10 @@ export default class PackageResolver {
    * TODO description
    */
 
+  /**
+   * 返回指定依赖包+版本对应的package.json，可能不存在
+   * @param {*} pattern 
+   */ 
   getResolvedPattern(pattern: string): ?Manifest {
     return this.patterns[pattern];
   }
@@ -389,6 +422,10 @@ export default class PackageResolver {
    * TODO description
    */
 
+  /**
+   * 返回指定依赖包+版本对应的package.json，肯定存在
+   * @param {*} pattern 
+   */ 
   getStrictResolvedPattern(pattern: string): Manifest {
     const manifest = this.getResolvedPattern(pattern);
     invariant(manifest, 'expected manifest');
@@ -423,6 +460,12 @@ export default class PackageResolver {
    * Get the manifest of the highest known version that satisfies a package range
    */
 
+  /**
+   * 返回指定包一直最新版本的相关信息
+   * @param {*} name 
+   * @param {*} range 
+   * @param {*} manifest 
+   */ 
   getHighestRangeVersionMatch(name: string, range: string, manifest: ?Manifest): ?Manifest {
     const patterns = this.patternsByPackage[name];
 
@@ -431,15 +474,18 @@ export default class PackageResolver {
     }
 
     const versionNumbers = [];
+    /**
+     * 指定name的包的所有版本对应的package.json
+     */
     const resolvedPatterns = patterns.map((pattern): Manifest => {
       const info = this.getStrictResolvedPattern(pattern);
       versionNumbers.push(info.version);
 
       return info;
     });
-
+    // 找出最新的版本号 
     const maxValidRange = semver.maxSatisfying(versionNumbers, range);
-
+    
     if (!maxValidRange) {
       return manifest && getExoticResolver(range) ? this.exoticRangeMatch(resolvedPatterns, manifest) : null;
     }
@@ -474,6 +520,12 @@ export default class PackageResolver {
   /**
    * Determine if LockfileEntry is incorrect, remove it from lockfile cache and consider the pattern as new
    */
+  /**
+   * 判断yarn.lock中版本是否落后当前package.json的版本
+   * @param {*} version 
+   * @param {*} range 
+   * @param {*} hasVersion 
+   */
   isLockfileEntryOutdated(version: string, range: string, hasVersion: boolean): boolean {
     return !!(
       semver.validRange(range) &&
@@ -496,8 +548,12 @@ export default class PackageResolver {
       return;
     }
 
+    /**
+     * 依赖包请求实例
+     */
     const request = new PackageRequest(req, this);
     const fetchKey = `${req.registry}:${req.pattern}:${String(req.optional)}`;
+    // 判断当前是否请求过相同依赖包
     const initialFetch = !this.fetchingPatterns.has(fetchKey);
     let fresh = false;
 
@@ -506,16 +562,25 @@ export default class PackageResolver {
     }
 
     if (initialFetch) {
+      // 首次请求，添加缓存
       this.fetchingPatterns.add(fetchKey);
 
+      /**
+       * 获取依赖包名+版本在lockfile的内容
+       */
       const lockfileEntry = this.lockfile.getLocked(req.pattern);
-
       if (lockfileEntry) {
+        // 存在lockfile的内容
+        // 取出依赖版本
+        // eq: concat-stream@^1.5.0 => { name: 'concat-stream', range: '^1.5.0', hasVersion: true }
         const {range, hasVersion} = normalizePattern(req.pattern);
-
+        
         if (this.isLockfileEntryOutdated(lockfileEntry.version, range, hasVersion)) {
+          // yarn.lock版本落后
           this.reporter.warn(this.reporter.lang('incorrectLockfileEntry', req.pattern));
+          // 删除已收集的依赖版本号
           this.removePattern(req.pattern);
+          // 删除yarn.lock中对包版本的信息（已经过时无效了）
           this.lockfile.removePattern(req.pattern);
           fresh = true;
         }
@@ -543,9 +608,13 @@ export default class PackageResolver {
   ): Promise<void> {
     this.flat = Boolean(isFlat);
     this.frozen = Boolean(isFrozen);
+    /**
+     * workspace子项目的package.json
+     */
     this.workspaceLayout = workspaceLayout;
     const activity = (this.activity = this.reporter.activity());
 
+    // 遍历所有workspace下的子项目
     for (const req of deps) {
       await this.find(req);
     }
@@ -622,11 +691,11 @@ export default class PackageResolver {
 
   resolveToResolution(req: DependencyRequestPattern): ?DependencyRequestPattern {
     const {parentNames, pattern} = req;
-
+  
     if (!parentNames || this.flat) {
       return req;
     }
-
+    
     const resolution = this.resolutionMap.find(pattern, parentNames);
 
     if (resolution) {

@@ -82,7 +82,13 @@ export default class YarnRegistry extends NpmRegistry {
     return val;
   }
 
+  /**
+   * 加载.yarnrc合并配置项
+   */
   async loadConfig(): Promise<void> {
+    /**
+     * yarnrc的路经、内容
+     */
     const locations = await this.getPossibleConfigLocations('yarnrc', this.reporter);
 
     for (const [isHome, loc, file] of locations) {

@@ -11,8 +11,14 @@ export default class BaseResolver {
   constructor(request: PackageRequest, fragment: string) {
     this.resolver = request.resolver;
     this.reporter = request.reporter;
+    /**
+     * 依赖包+版本
+     */
     this.fragment = fragment;
     this.registry = request.registry;
+    /**
+     * 依赖包请求实例
+     */
     this.request = request;
     this.pattern = request.pattern;
     this.config = request.config;

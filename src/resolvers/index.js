@@ -32,6 +32,11 @@ const exotics: Set<Class<$Subtype<BaseResolver>>> = new Set([
   ExoticBitbucket,
 ]);
 
+/**
+ * 对于非版本号的方式匹配
+ * eq: file:// ssh:// 等
+ * @param {*} pattern 
+ */
 export function getExoticResolver(pattern: string): ?Class<$Subtype<BaseResolver>> {
   for (const Resolver of exotics) {
     if (Resolver.isVersion(pattern)) {

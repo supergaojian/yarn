@@ -6,6 +6,11 @@ export function wait(delay: number): Promise<void> {
   });
 }
 
+/**
+ * 将函数转为promise返回
+ * @param {*} fn 
+ * @param {*} firstData 
+ */
 export function promisify(fn: Function, firstData?: boolean): (...args: Array<any>) => Promise<any> {
   return function(...args): Promise<any> {
     return new Promise(function(resolve, reject) {

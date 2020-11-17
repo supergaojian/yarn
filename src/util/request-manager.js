@@ -74,6 +74,9 @@ type RequestOptions = {
   reject: (err: any) => void,
 };
 
+/**
+ * 网络请求管理
+ */
 export default class RequestManager {
   constructor(reporter: Reporter) {
     this.offlineNoRequests = false;
@@ -97,6 +100,9 @@ export default class RequestManager {
   offlineNoRequests: boolean;
   captureHar: boolean;
   userAgent: string;
+  /**
+   * 日志实例
+   */
   reporter: Reporter;
   running: number;
   httpsProxy: string | boolean;
@@ -107,8 +113,17 @@ export default class RequestManager {
   key: ?string;
   offlineQueue: Array<RequestOptions>;
   queue: Array<Object>;
+  /**
+   * 最大网络并发请求数量
+   */
   max: number;
+  /**
+   * 超时时长
+   */
   timeout: number;
+  /**
+   * 最大重试次数
+   */
   maxRetryAttempts: number;
   cache: {
     [key: string]: Promise<any>,
@@ -117,6 +132,10 @@ export default class RequestManager {
   _requestCaptureHar: ?RequestCaptureHar;
   _requestModule: ?RequestModuleT;
 
+  /**
+   * 更新配置项
+   * @param {*} opts 
+   */
   setOptions(opts: {
     userAgent?: string,
     offline?: boolean,
@@ -221,11 +240,16 @@ export default class RequestManager {
    * Queue up a request.
    */
 
+  /**
+   * 发送请求
+   * @param {*} params 
+   */ 
   request<T>(params: RequestParams<T>): Promise<T> {
     if (this.offlineNoRequests) {
       return Promise.reject(new MessageError(this.reporter.lang('cantRequestOffline', params.url)));
     }
 
+    // 缓存请求结果
     const cached = this.cache[params.url];
     if (cached) {
       return cached;
@@ -355,6 +379,10 @@ export default class RequestManager {
    * Execute a request.
    */
 
+  /**
+   * 执行请求
+   * @param {*} opts 
+   */ 
   execute(opts: RequestOptions) {
     const {params} = opts;
     const {reporter} = this;
@@ -413,7 +441,7 @@ export default class RequestManager {
 
     if (!params.process) {
       const parts = url.parse(params.url);
-
+  
       params.callback = (err, res, body) => {
         if (err) {
           onError(err);
@@ -511,6 +539,7 @@ export default class RequestManager {
     }
 
     const process = params.process;
+
     if (process) {
       req.on('response', res => {
         if (res.statusCode >= 200 && res.statusCode < 300) {
@@ -530,6 +559,9 @@ export default class RequestManager {
    * Remove an item from the queue. Create it's request options and execute it.
    */
 
+  /**
+   * 从等待队列中弹出一个请求任务执行
+   */ 
   shiftQueue() {
     if (this.running >= this.max || !this.queue.length) {
       return;

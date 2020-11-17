@@ -54,6 +54,12 @@ export async function getWrappersFolder(config: Config): Promise<string> {
 
 const INVALID_CHAR_REGEX = /\W/g;
 
+/**
+ * 更新node环境变量
+ * @param {*}} stage 
+ * @param {*} cwd 
+ * @param {*} config 
+ */
 export async function makeEnv(
   stage: string,
   cwd: string,
@@ -242,6 +248,10 @@ export async function makeEnv(
   return env;
 }
 
+/**
+ * 执行生命周期脚本
+ * @param {*} param0 
+ */
 export async function executeLifecycleScript({
   stage,
   config,
@@ -323,18 +333,29 @@ async function _checkForGyp(config: Config, paths: Array<string>): Promise<void>
   }
 }
 
+/**
+ * 从package.json中执行命令
+ * @param {*} config 
+ * @param {*} commandName 
+ * @param {*} cwd 
+ */
 export async function execFromManifest(config: Config, commandName: string, cwd: string): Promise<void> {
   const pkg = await config.maybeReadManifest(cwd);
   if (!pkg || !pkg.scripts) {
     return;
   }
 
+  // 找到package.json的scripts中配置的指定命令
   const cmd: ?string = pkg.scripts[commandName];
   if (cmd) {
     await execCommand({stage: commandName, config, cmd, cwd, isInteractive: true});
   }
 }
 
+/**
+ * 执行命令
+ * @param {*} param0 
+ */
 export async function execCommand({
   stage,
   config,

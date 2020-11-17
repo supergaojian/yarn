@@ -15,6 +15,12 @@ let uid = 0;
 
 export const exec = promisify(child.exec);
 
+/**
+ * 使用fork执行文件
+ * @param {*} program 文件路径
+ * @param {*} args 执行参数
+ * @param {*} opts spawn配置项
+ */
 export function forkp(program: string, args: Array<string>, opts?: Object): Promise<number> {
   return new Promise((resolve, reject) => {
     const proc = child.fork(program, args, opts);
@@ -29,6 +35,12 @@ export function forkp(program: string, args: Array<string>, opts?: Object): Prom
   });
 }
 
+/**
+ * 使用spawn执行文件
+ * @param {*} program 文件路径
+ * @param {*} args 执行参数
+ * @param {*} opts spawn配置项
+ */
 export function spawnp(program: string, args: Array<string>, opts?: Object): Promise<number> {
   return new Promise((resolve, reject) => {
     const proc = child.spawn(program, args, opts);

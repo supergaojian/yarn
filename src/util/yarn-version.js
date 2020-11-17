@@ -10,7 +10,12 @@ import path from 'path';
 
 // This will be bundled directly in the .js file for production builds
 const {version, installationMethod: originalInstallationMethod} = require('../../package.json');
-export {version};
+export {
+  /**
+   * 当前yarn版本
+   */
+  version
+};
 
 export async function getInstallationMethod(): Promise<InstallationMethod> {
   let installationMethod = originalInstallationMethod;

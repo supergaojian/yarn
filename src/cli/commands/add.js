@@ -24,9 +24,15 @@ const SILENCE_DEPENDENCY_TYPE_WARNINGS = ['upgrade', 'upgrade-interactive'];
 
 export class Add extends Install {
   constructor(args: Array<string>, flags: Object, config: Config, reporter: Reporter, lockfile: Lockfile) {
+    /**
+     * 当前执行目录是否为workspace根目录
+     */
     const workspaceRootIsCwd = config.cwd === config.lockfileFolder;
     const _flags = flags ? {...flags, workspaceRootIsCwd} : {workspaceRootIsCwd};
     super(_flags, config, reporter, lockfile);
+    /**
+     * 执行命令参数（要安装的依赖包）
+     */
     this.args = args;
     // only one flag is supported, so we can figure out which one was passed to `yarn add`
     this.flagToOrigin = [
@@ -47,9 +53,16 @@ export class Add extends Install {
    * TODO
    */
 
+  /**
+   * 将命令参数当作要安装的依赖包添加到请求集合中
+   * @param {*} requests 
+   */ 
   prepareRequests(requests: DependencyRequestPatterns): DependencyRequestPatterns {
+    /**
+     * 依赖包请求参数集合
+     */  
     const requestsWithArgs = requests.slice();
-
+    
     for (const pattern of this.args) {
       requestsWithArgs.push({
         pattern,
@@ -170,7 +183,14 @@ export class Add extends Install {
    * Description
    */
 
+
+  /**
+   * 初始化
+   */
   async init(): Promise<Array<string>> {
+    /**
+     * 当前执行目录为workspace执行目录标志
+     */  
     const isWorkspaceRoot = this.config.workspaceRootFolder && this.config.cwd === this.config.workspaceRootFolder;
 
     // running "yarn add something" in a workspace root is often a mistake
@@ -303,11 +323,21 @@ export function setFlags(commander: Object) {
   commander.option('-A, --audit', 'Run vulnerability audit on installed packages');
 }
 
+/**
+ * 执行命令
+ * @param {*} config 配置项实例
+ * @param {*} reporter 日志实例
+ * @param {*} flags commander指令对象
+ * @param {*} args 指令参数
+ */
 export async function run(config: Config, reporter: Reporter, flags: Object, args: Array<string>): Promise<void> {
   if (!args.length) {
     throw new MessageError(reporter.lang('missingAddDependencies'));
   }
 
+  /**
+   * yarn.lock实例
+   */
   const lockfile = await Lockfile.fromDirectory(config.lockfileFolder, reporter);
 
   await wrapLifecycle(config, flags, async () => {

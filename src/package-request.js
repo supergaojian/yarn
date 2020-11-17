@@ -32,13 +32,31 @@ export default class PackageRequest {
   constructor(req: DependencyRequestPattern, resolver: PackageResolver) {
     this.parentRequest = req.parentRequest;
     this.parentNames = req.parentNames || [];
+    /**
+     * lockfile实例
+     */
     this.lockfile = resolver.lockfile;
+    /**
+     * 当前使用的仓库
+     */
     this.registry = req.registry;
+    /**
+     * 日志实例
+     */
     this.reporter = resolver.reporter;
+    /**
+     * PackageResolver
+     */
     this.resolver = resolver;
     this.optional = req.optional;
     this.hint = req.hint;
+    /**
+     * 当前请求的包名+版本号
+     */
     this.pattern = req.pattern;
+    /**
+     * config实例
+     */
     this.config = resolver.config;
     this.foundInfo = null;
   }
@@ -59,8 +77,16 @@ export default class PackageRequest {
   hint: ?constants.RequestHint;
   foundInfo: ?Manifest;
 
+  /**
+   * 返回lockfile信息
+   * @param {*} remoteType 
+   */
   getLocked(remoteType: FetcherNames): ?Manifest {
     // always prioritise root lockfile
+
+    /**
+     * 获取该依赖包版本的lock信息
+     */
     const shrunk = this.lockfile.getLocked(this.pattern);
 
     if (shrunk && shrunk.resolved) {
@@ -96,6 +122,12 @@ export default class PackageRequest {
    * Otherwise fork off to an exotic resolver if one matches.
    */
 
+  /**
+   * 获取依赖包版本
+   * 协议类型使用对应协议resolver获取版本号
+   * 版本号类型取lockfile的版本号
+   * @param {*}} pattern 
+   */ 
   async findVersionOnRegistry(pattern: string): Promise<Manifest> {
     const {range, name} = await this.normalize(pattern);
 
@@ -173,6 +205,11 @@ export default class PackageRequest {
    * Construct an exotic resolver instance with the input `ExoticResolver` and `range`.
    */
 
+   /**
+    * 针对特殊写法的版本号解析
+    * @param {*} ExoticResolver 
+    * @param {*} range 
+    */
   findExoticVersionInfo(ExoticResolver: Function, range: string): Promise<Manifest> {
     const resolver = new ExoticResolver(this, range);
     return resolver.resolve();
@@ -183,11 +220,16 @@ export default class PackageRequest {
    * the registry.
    */
 
+  /**
+   * 查找此软件包模式的版本信息
+   */
   async findVersionInfo(): Promise<Manifest> {
+    // 版本号非常规的数字，file:// ssh://类型
     const exoticResolver = getExoticResolver(this.pattern);
     if (exoticResolver) {
       return this.findExoticVersionInfo(exoticResolver, this.pattern);
     } else if (WorkspaceResolver.isWorkspace(this.pattern, this.resolver.workspaceLayout)) {
+      // workspace子项目
       invariant(this.resolver.workspaceLayout, 'expected workspaceLayout');
       const resolver = new WorkspaceResolver(this, this.pattern, this.resolver.workspaceLayout);
       let manifest;
@@ -204,6 +246,7 @@ export default class PackageRequest {
       }
       return resolver.resolve(manifest);
     } else {
+      // 第三方依赖包
       return this.findVersionOnRegistry(this.pattern);
     }
   }
@@ -233,15 +276,27 @@ export default class PackageRequest {
   /**
    * TODO description
    */
+  /**
+   * 
+   * @param {*} param0 
+   */
   async find({fresh, frozen}: {fresh: boolean, frozen?: boolean}): Promise<void> {
     // find version info for this package pattern
+
+    /**
+     * 依赖包和要安装的版本号
+     */
     const info: Manifest = await this.findVersionInfo();
 
     if (!semver.valid(info.version)) {
       throw new MessageError(this.reporter.lang('invalidPackageVersion', info.name, info.version));
     }
 
+    /**
+     * 是否请求新的资源
+     */
     info.fresh = fresh;
+
     cleanDependencies(info, false, this.reporter, () => {
       // swallow warnings
     });
@@ -249,7 +304,12 @@ export default class PackageRequest {
     // check if while we were resolving this dep we've already resolved one that satisfies
     // the same range
     const {range, name} = normalizePattern(this.pattern);
+
+    /**
+     * 获取最终版本号
+     */
     const solvedRange = semver.validRange(range) ? info.version : range;
+
     const resolved: ?Manifest =
       !info.fresh || frozen
         ? this.resolver.getExactVersionMatch(name, solvedRange, info)

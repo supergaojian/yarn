@@ -97,9 +97,18 @@ export default function(info: Object, isRoot: boolean, reporter: Reporter, warn:
   cleanDependencies(info, isRoot, reporter, warn);
 }
 
+/**
+ * 遍历package.json依赖，以devDependencies的最终版本为主
+ * @param {*} info 
+ * @param {*} isRoot 
+ * @param {*} reporter 
+ * @param {*} warn 
+ */
 export function cleanDependencies(info: Object, isRoot: boolean, reporter: Reporter, warn: WarnFunction) {
   // get dependency objects
   const depTypes = [];
+
+  // 收集dependencies、devDependencies、optionalDependencies
   for (const type of dependencyKeys) {
     const deps = info[type];
     if (!deps || typeof deps !== 'object') {
@@ -114,6 +123,7 @@ export function cleanDependencies(info: Object, isRoot: boolean, reporter: Repor
     for (const name of Object.keys(deps)) {
       const version = deps[name];
       if (!nonTrivialDeps.has(name) && version && version !== '*') {
+        // 收集版本号非*的包
         nonTrivialDeps.set(name, {type, version});
       }
     }

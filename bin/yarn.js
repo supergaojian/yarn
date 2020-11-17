@@ -4,10 +4,17 @@
 /* eslint-disable flowtype/require-valid-file-annotation */
 'use strict';
 
+/**
+ * nodejs版本号
+ */
 var ver = process.versions.node;
+/**
+ * 取大版本号
+ */
 var majorVer = parseInt(ver.split('.')[0], 10);
 
 if (majorVer < 4) {
+  // nodejs v4版本以下不支持
   console.error('Node version ' + ver + ' is not supported, please use Node.js 4.0 or higher.');
   process.exit(1); // eslint-disable-line no-process-exit
 } else {

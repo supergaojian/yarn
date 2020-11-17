@@ -20,6 +20,9 @@ export type DependenciesMeta = {
 };
 
 export type PeerDependencyMeta = {
+  /**
+   * 可选项
+   */
   optional?: boolean,
 };
 
