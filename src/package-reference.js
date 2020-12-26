@@ -69,6 +69,9 @@ export default class PackageReference {
   patterns: Array<string>;
   permissions: {[key: string]: boolean};
   remote: PackageRemote;
+  /**
+   * 使用仓库实例名
+   */
   registry: RegistryNames;
   locations: Array<string>;
   resolver: PackageResolver;
@@ -112,6 +115,11 @@ export default class PackageReference {
     }
   }
 
+  /**
+   * 添加依赖
+   * @param {*} pattern 
+   * @param {*} manifest 
+   */
   addPattern(pattern: string, manifest: Manifest) {
     this.resolver.addPattern(pattern, manifest);
 
@@ -125,6 +133,10 @@ export default class PackageReference {
     }
   }
 
+  /**
+   * 设置可选标志
+   * @param {*} optional 
+   */
   addOptional(optional: boolean) {
     if (this.optional == null) {
       // optional is uninitialised

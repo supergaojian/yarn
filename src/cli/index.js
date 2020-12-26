@@ -48,6 +48,9 @@ global.log = (...args) => {
   }
 }
 
+/**
+ * 在error消息最开头插入监听
+ */
 process.stdout.prependListener('error', err => {
   // swallow err only if downstream consumer process closed pipe early
   if (err.code === 'EPIPE' || err.code === 'ERR_STREAM_DESTROYED') {
@@ -104,50 +107,84 @@ export async function main({
   };
 
   loudRejection();
+  // 增加监听 SIGTERM 事件关闭全部子进程
   handleSignals();
 
   // set global options
+  // 当前 yarn 版本号
   commander.version(version, '-v, --version');
   commander.usage('[command] [flags]');
+  // 禁止 Yarn 自动检测 yarnrc 和 npmrc 文件
   commander.option('--no-default-rc', 'prevent Yarn from automatically detecting yarnrc and npmrc files');
+  // 指定Yarn应该使用的yarnrc文件（仅.yarnrc，而不是.npmrc）
   commander.option(
     '--use-yarnrc <path>',
     'specifies a yarnrc file that Yarn should use (.yarnrc only, not .npmrc)',
     collect,
     [],
   );
+  // 在内部操作上输出详细消息
   commander.option('--verbose', 'output verbose messages on internal operations');
+  // 如果本地高速缓存中没有任何必需的依赖项，则会触发错误
   commander.option('--offline', 'trigger an error if any required dependencies are not available in local cache');
+  // 仅当本地缓存中不存在依赖项时才使用网络
   commander.option('--prefer-offline', 'use network only if dependencies are not available in local cache');
+  // 启用即插即用安装
   commander.option('--enable-pnp, --pnp', "enable the Plug'n'Play installation");
+  // 禁用即插即用安装
   commander.option('--disable-pnp', "disable the Plug'n'Play installation");
+  // 严格版本号匹配
   commander.option('--strict-semver');
+  // 将Yarn日志消息格式化为JSON行（请参阅jsonlines.org）
   commander.option('--json', 'format Yarn log messages as lines of JSON (see jsonlines.org)');
+  // 忽略执行生命周期钩子
   commander.option('--ignore-scripts', "don't run lifecycle scripts");
+  // 保存网络流量的HAR输出
   commander.option('--har', 'save HAR output of network traffic');
+  // 忽略平台检查
   commander.option('--ignore-platform', 'ignore platform checks');
+  // 忽略引擎检查
   commander.option('--ignore-engines', 'ignore engines check');
+  // 忽略optional dependencies
   commander.option('--ignore-optional', 'ignore optional dependencies');
+  // 即使已构建软件包，也要安装并构建软件包，覆盖yarn.lock
   commander.option('--force', 'install and build packages even if they were built before, overwrite lockfile');
+  // 运行安装而不检查是否安装了node_modules
   commander.option('--skip-integrity-check', 'run install without checking if node_modules is installed');
+  // 安装将验证软件包文件树的一致性
   commander.option('--check-files', 'install will verify file tree of packages for consistency');
+  // 设置程序包时不生成bin链接
   commander.option('--no-bin-links', "don't generate bin links when setting up packages");
+  // 只允许一个版本的软件包
   commander.option('--flat', 'only allow one version of a package');
+  // production环境
   commander.option('--prod, --production [prod]', '', boolify);
+  // 不读取或生成yarn.lock
   commander.option('--no-lockfile', "don't read or generate a lockfile");
+  // 不生成yarn.lock
   commander.option('--pure-lockfile', "don't generate a lockfile");
+  // 不生成yarn.lock，如果需要更新则失败
   commander.option('--frozen-lockfile', "don't generate a lockfile and fail if an update is needed");
+  // 从当前存储库更新程序包校验
   commander.option('--update-checksums', 'update package checksums from current repository');
+  // 创建到node_modules中重复模块的硬链接
   commander.option('--link-duplicates', 'create hardlinks to the repeated modules in node_modules');
+  // 指定一个自定义文件夹来存储全局链接
   commander.option('--link-folder <path>', 'specify a custom folder to store global links');
+  // 指定一个自定义文件夹来存储全局包
   commander.option('--global-folder <path>', 'specify a custom folder to store global packages');
+  // 不是将模块安装到相对于cwd的node_modules文件夹中，请在此处输出它们
   commander.option(
     '--modules-folder <path>',
     'rather than installing modules into the node_modules folder relative to the cwd, output them here',
   );
+  // 指定一个自定义文件夹以存储yarn缓存
   commander.option('--preferred-cache-folder <path>', 'specify a custom folder to store the yarn cache if possible');
+  // 指定必须用于存储yarn缓存的自定义文件夹
   commander.option('--cache-folder <path>', 'specify a custom folder that must be used to store the yarn cache');
+  // 使用互斥量以确保仅执行一个yarn实例
   commander.option('--mutex <type>[:specifier]', 'use a mutex to ensure only one yarn instance is executing');
+  // 允许emoji表情
   commander.option(
     '--emoji [bool]',
     'enable emoji in output',
@@ -157,22 +194,35 @@ export async function main({
       process.env.TERM_PROGRAM === 'HyperTerm' ||
       process.env.TERM_PROGRAM === 'Terminus',
   );
+  // 跳过Yarn控制台日志，将打印其他类型的日志（脚本输出）
   commander.option('-s, --silent', 'skip Yarn console logs, other types of logs (script output) will be printed');
+  // 输出使用的工作目录
   commander.option('--cwd <cwd>', 'working directory to use', process.cwd());
+  // 使用代理地址
   commander.option('--proxy <host>', '');
+  // 使用https代理地址
   commander.option('--https-proxy <host>', '');
+  // 覆盖配置的npm仓库地址
   commander.option('--registry <url>', 'override configuration registry');
+  // 不展示进度条
   commander.option('--no-progress', 'disable progress bar');
+  // 并发网络请求的最大数量
   commander.option('--network-concurrency <number>', 'maximum number of concurrent network requests', parseInt);
+  // 网络请求的TCP超时
   commander.option('--network-timeout <milliseconds>', 'TCP timeout for network requests', parseInt);
+  // 不显示交互提示
   commander.option('--non-interactive', 'do not show interactive prompts');
+  // 在脚本中将节点可执行文件目录添加到PATH
   commander.option(
     '--scripts-prepend-node-path [bool]',
     'prepend the node executable dir to the PATH in scripts',
     boolify,
   );
+  // 使用可能不受支持的node版本时不发出警告
   commander.option('--no-node-version-check', 'do not warn when using a potentially unsupported Node version');
+  // 通过安装其兄弟workspace的远程副本来专注于单个workspace
   commander.option('--focus', 'Focus on a single workspace by installing remote copies of its sibling workspaces.');
+  // 一次性密码进行两因素验证
   commander.option('--otp <otpcode>', 'one-time password for two factor authentication');
 
   // if -v is the first command, then always exit after returning the version
@@ -330,11 +380,12 @@ export async function main({
   }
 
   if (commander.nodeVersionCheck && !semver.satisfies(process.versions.node, constants.SUPPORTED_NODE_VERSIONS)) {
-    // nodejs版本校验
+    // 忽略nodejs版本校验时会发出警告
     reporter.warn(reporter.lang('unsupportedNodeVersion', process.versions.node, constants.SUPPORTED_NODE_VERSIONS));
   }
 
   if (command.noArguments && commander.args.length) {
+    // 没有任何参数则返回一场
     reporter.error(reporter.lang('noArguments'));
     reporter.info(command.getDocsInfo);
     exit(1);
@@ -626,6 +677,7 @@ export async function main({
     .then(() => {
       // lockfile check must happen after config.init sets lockfileFolder
       if (command.requireLockfile && !fs.existsSync(path.join(config.lockfileFolder, constants.LOCKFILE_FILENAME))) {
+        // 用户指定了yarn.lock文件，但文件不存在时则抛出异常
         throw new MessageError(reporter.lang('noRequiredLockfile'));
       }
 

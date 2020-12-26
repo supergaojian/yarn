@@ -167,18 +167,38 @@ export function check(infos: Array<Manifest>, config: Config, ignoreEngines: boo
   }
 }
 
+/**
+ * 是否要检查cpu
+ * @param {*}} cpu 
+ * @param {*} ignorePlatform 
+ */
 function shouldCheckCpu(cpu: $PropertyType<Manifest, 'cpu'>, ignorePlatform: boolean): boolean %checks {
   return !ignorePlatform && Array.isArray(cpu) && cpu.length > 0;
 }
 
+/**
+ * 是否要检查平台
+ * @param {*} os 
+ * @param {*} ignorePlatform 
+ */
 function shouldCheckPlatform(os: $PropertyType<Manifest, 'os'>, ignorePlatform: boolean): boolean %checks {
   return !ignorePlatform && Array.isArray(os) && os.length > 0;
 }
 
+/**
+ * 是否要检查引擎
+ * @param {*} engines 
+ * @param {*} ignoreEngines 
+ */
 function shouldCheckEngines(engines: $PropertyType<Manifest, 'engines'>, ignoreEngines: boolean): boolean %checks {
   return !ignoreEngines && typeof engines === 'object';
 }
 
+/**
+ * 是否要做兼容性检查
+ * @param {*} manifest 
+ * @param {*} options 
+ */
 export function shouldCheck(
   manifest: PartialManifest,
   options: {ignoreEngines: boolean, ignorePlatform: boolean},

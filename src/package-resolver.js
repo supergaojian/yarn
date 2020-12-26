@@ -58,10 +58,19 @@ export default class PackageResolver {
   }
 
   // whether the dependency graph will be flattened
+  /**
+   * 只允许一个版本的软件包
+   */
   flat: boolean;
 
+  /**
+   * 不生成yarn.lock，如果需要更新则失败
+   */
   frozen: boolean;
 
+  /**
+   * workspace子项目的package.json
+   */
   workspaceLayout: ?WorkspaceLayout;
 
   resolutionMap: ResolutionMap;
@@ -157,6 +166,10 @@ export default class PackageResolver {
    * Given a list of patterns, dedupe them to a list of unique patterns.
    */
 
+  /**
+   * 对给定的依赖包+版本去重
+   * @param {*} patterns 
+   */ 
   dedupePatterns(patterns: Iterable<string>): Array<string> {
     const deduped = [];
     const seen = new Set();
@@ -282,7 +295,9 @@ export default class PackageResolver {
   /**
    * Get a flat list of all package info.
    */
-
+  /**
+   * 获取打平去重后全部依赖包信息
+   */
   getManifests(): Array<Manifest> {
     const infos = [];
     const seen = new Set();
@@ -372,6 +387,11 @@ export default class PackageResolver {
    * TODO description
    */
 
+  /**
+   * 添加依赖
+   * @param {*} pattern 
+   * @param {*} info 
+   */ 
   addPattern(pattern: string, info: Manifest) {
     this.patterns[pattern] = info;
 
@@ -540,6 +560,10 @@ export default class PackageResolver {
    * TODO description
    */
 
+  /**
+   * 查找依赖包全部版本号
+   * @param {*} initialReq 
+   */ 
   async find(initialReq: DependencyRequestPattern): Promise<void> {
     const req = this.resolveToResolution(initialReq);
 
@@ -574,7 +598,6 @@ export default class PackageResolver {
         // 取出依赖版本
         // eq: concat-stream@^1.5.0 => { name: 'concat-stream', range: '^1.5.0', hasVersion: true }
         const {range, hasVersion} = normalizePattern(req.pattern);
-        
         if (this.isLockfileEntryOutdated(lockfileEntry.version, range, hasVersion)) {
           // yarn.lock版本落后
           this.reporter.warn(this.reporter.lang('incorrectLockfileEntry', req.pattern));
@@ -608,19 +631,18 @@ export default class PackageResolver {
   ): Promise<void> {
     this.flat = Boolean(isFlat);
     this.frozen = Boolean(isFrozen);
-    /**
-     * workspace子项目的package.json
-     */
     this.workspaceLayout = workspaceLayout;
     const activity = (this.activity = this.reporter.activity());
 
-    // 遍历所有workspace下的子项目
+    // 遍历所有workspace下的子项目获取全部应安装的版本号以及对应的地址
     for (const req of deps) {
       await this.find(req);
     }
 
     // all required package versions have been discovered, so now packages that
     // resolved to existing versions can be resolved to their best available version
+    // 已发现所有必需的软件包版本
+    // 因此现在可以将解析为现有版本的软件包解析为最佳可用版本
     this.resolvePackagesWithExistingVersions();
 
     for (const req of this.resolutionMap.delayQueue) {
@@ -674,6 +696,11 @@ export default class PackageResolver {
     * discovered.
     */
 
+  /**
+   * 依赖包包请求调用此解析器已经具有与其匹配版本的依赖包
+   * @param {*} req 
+   * @param {*} info 
+   */  
   reportPackageWithExistingVersion(req: PackageRequest, info: Manifest) {
     this.delayedResolveQueue.push({req, info});
   }
@@ -683,6 +710,9 @@ export default class PackageResolver {
     * when all versions that are going to be used have been discovered.
     */
 
+  /**
+   * 当发现所有将要使用的版本时，在查找过程之后对包的现有版本执行解析
+   */  
   resolvePackagesWithExistingVersions() {
     for (const {req, info} of this.delayedResolveQueue) {
       req.resolveToExistingVersion(info);

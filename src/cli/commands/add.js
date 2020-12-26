@@ -28,6 +28,9 @@ export class Add extends Install {
      * 当前执行目录是否为workspace根目录
      */
     const workspaceRootIsCwd = config.cwd === config.lockfileFolder;
+    /**
+     * 用户相关yarn配置
+     */
     const _flags = flags ? {...flags, workspaceRootIsCwd} : {workspaceRootIsCwd};
     super(_flags, config, reporter, lockfile);
     /**
@@ -105,6 +108,10 @@ export class Add extends Install {
     return version;
   }
 
+  /**
+   * 插入要安装的依赖包+版本
+   * @param {*} patterns 
+   */
   preparePatterns(patterns: Array<string>): Array<string> {
     const preparedPatterns = patterns.slice();
     for (const pattern of this.resolver.dedupePatterns(this.args)) {
@@ -195,6 +202,7 @@ export class Add extends Install {
 
     // running "yarn add something" in a workspace root is often a mistake
     if (isWorkspaceRoot && !this.flags.ignoreWorkspaceRootCheck) {
+      // 当前执行位置是workspace根结点，但却忽略了workspace根结点检查
       throw new MessageError(this.reporter.lang('workspacesAddRootCheck'));
     }
 
@@ -336,7 +344,7 @@ export async function run(config: Config, reporter: Reporter, flags: Object, arg
   }
 
   /**
-   * yarn.lock实例
+   * 获取yarn.lock实例
    */
   const lockfile = await Lockfile.fromDirectory(config.lockfileFolder, reporter);
 

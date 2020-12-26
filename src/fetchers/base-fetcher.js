@@ -25,13 +25,31 @@ export default class BaseFetcher {
     this.dest = dest;
   }
 
+  /**
+   * 日志实例
+   */
   reporter: Reporter;
   remote: PackageRemote;
+  /**
+   * 使用的仓库实例名
+   */
   registry: RegistryNames;
+  /**
+   * 依赖包名
+   */
   packageName: ?string;
+  /**
+   * 依赖包请求地址
+   */
   reference: string;
+  /**
+   * config实例
+   */
   config: Config;
   hash: ?string;
+  /**
+   * 缓存路径 + npm源-包名-版本-integrity + node_modules + 包
+   */
   dest: string;
 
   setupMirrorFromCache(): Promise<?string> {

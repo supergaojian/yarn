@@ -47,6 +47,9 @@ if (process.platform === 'win32' && !(process.env.TERM && /^xterm/i.test(process
   chalk.bold._styles[0].close += '\u001b[m';
 }
 
+/**
+ * 控制台日志
+ */
 export default class ConsoleReporter extends BaseReporter {
   constructor(opts: Object) {
     super(opts);

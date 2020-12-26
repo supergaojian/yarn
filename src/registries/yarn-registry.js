@@ -59,6 +59,9 @@ export default class YarnRegistry extends NpmRegistry {
 
   static filename = 'yarn.json';
 
+  /**
+   * 用户根目录yarnrc地址
+   */
   homeConfigLoc: string;
   homeConfig: Object;
 

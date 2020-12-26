@@ -97,16 +97,35 @@ export default class RequestManager {
     this.maxRetryAttempts = 5;
   }
 
+  /**
+   * 走本地离线缓存
+   * 如果本地高速缓存中没有任何必需的依赖项，则会触发错误
+   */
   offlineNoRequests: boolean;
+  /**
+   * 保存网络流量的HAR输出标志
+   */
   captureHar: boolean;
+  /**
+   * 用户配置的UA
+   */
   userAgent: string;
   /**
    * 日志实例
    */
   reporter: Reporter;
   running: number;
+  /**
+   * https代理
+   */
   httpsProxy: string | boolean;
+  /**
+   * http代理
+   */
   httpProxy: string | boolean;
+  /**
+   * 严格ssl协议标志
+   */
   strictSSL: boolean;
   ca: ?Array<string>;
   cert: ?string;

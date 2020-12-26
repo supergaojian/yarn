@@ -67,7 +67,7 @@ const INTEGRITY_FILE_DEFAULTS = () => ({
 });
 
 /**
- *
+ * Integrity检查实例
  */
 export default class InstallationIntegrityChecker {
   constructor(config: Config) {
@@ -428,6 +428,7 @@ export default class InstallationIntegrityChecker {
       return null;
     }
 
+    // 读取.yarn-integrity文件
     const expectedRaw = await fs.readFile(loc.locationPath);
 
     let expected: ?IntegrityFile;

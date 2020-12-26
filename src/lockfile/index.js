@@ -142,6 +142,9 @@ export function explodeEntry(pattern: string, obj: Object): LockManifest {
   return obj;
 }
 
+/**
+ * yarn.lock对象
+ */
 export default class Lockfile {
   constructor(
     {cache, source, parseResultType}: {cache?: ?Object, source?: string, parseResultType?: ParseResultType} = {},
@@ -168,7 +171,7 @@ export default class Lockfile {
   };
 
   /**
-   * 解析后结果
+   * 解析后结果状态
    */
   parseResultType: ?ParseResultType;
 
@@ -195,6 +198,9 @@ export default class Lockfile {
    */
   static async fromDirectory(dir: string, reporter?: Reporter): Promise<Lockfile> {
     // read the manifest in this directory
+    /**
+     * yarn.lock路径
+     */
     const lockfileLoc = path.join(dir, LOCKFILE_FILENAME);
 
     let lockfile;
@@ -208,7 +214,7 @@ export default class Lockfile {
     let parseResult;
 
     if (await fs.exists(lockfileLoc)) {
-      // 存在yarn.lock
+      // 存在yarn.lock文件
       rawLockfile = await fs.readFile(lockfileLoc);
       parseResult = parse(rawLockfile, lockfileLoc);
 

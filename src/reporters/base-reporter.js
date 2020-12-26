@@ -89,10 +89,25 @@ export default class BaseReporter {
   stderr: Stdout;
   stdin: Stdin;
   isTTY: boolean;
+  /**
+   * 允许展示emoji表情
+   */
   emoji: boolean;
+  /**
+   * 关闭展示进度条标志
+   */
   noProgress: boolean;
+  /**
+   * 允许在内部操作上输出详细消息
+   */
   isVerbose: boolean;
+  /**
+   * 跳过Yarn控制台日志，将打印其他类型的日志（脚本输出）
+   */
   isSilent: boolean;
+  /**
+   * 不显示交互提示
+   */
   nonInteractive: boolean;
   format: Formatter;
 
@@ -160,6 +175,9 @@ export default class BaseReporter {
     return standardInput;
   }
 
+  /**
+   * 每隔1秒检查当前V8内存使用情况
+   */
   initPeakMemoryCounter() {
     this.checkPeakMemory();
     this.peakMemoryInterval = setInterval(() => {
@@ -169,6 +187,9 @@ export default class BaseReporter {
     this.peakMemoryInterval.unref();
   }
 
+  /**
+   * 检查更新当前内存使用情况
+   */
   checkPeakMemory() {
     const {heapTotal} = process.memoryUsage();
     if (heapTotal > this.peakMemory) {
@@ -176,6 +197,9 @@ export default class BaseReporter {
     }
   }
 
+  /**
+   * 停止interval方法刷新
+   */
   close() {
     if (this.peakMemoryInterval) {
       clearInterval(this.peakMemoryInterval);
@@ -301,6 +325,9 @@ export default class BaseReporter {
   }
 
   // utility function to disable progress bar
+  /**
+   * 关闭展示进度条
+   */
   disableProgress() {
     this.noProgress = true;
   }

@@ -127,6 +127,7 @@ export function fetch(pkgs: Array<Manifest>, config: Config): Promise<Array<Mani
      * 缓存路径 + npm源-包名-版本-integrity + node_modules + 包名
      */
     const dest = config.generateModuleCachePath(ref);
+    // 再次去重
     const otherPkg = pkgsPerDest.get(dest);
     if (otherPkg) {
       config.reporter.warn(

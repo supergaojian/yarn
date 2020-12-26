@@ -59,7 +59,7 @@ export default class WorkspaceResolver extends BaseResolver {
     });
 
     manifest._uid = manifest.version;
-
+  
     return Promise.resolve(manifest);
   }
 }

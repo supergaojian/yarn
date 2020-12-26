@@ -28,6 +28,9 @@ type ResolverRegistryNames = $Keys<typeof registryResolvers>;
 
 const micromatch = require('micromatch');
 
+/**
+ * 依赖包请求实例
+ */
 export default class PackageRequest {
   constructor(req: DependencyRequestPattern, resolver: PackageResolver) {
     this.parentRequest = req.parentRequest;
@@ -48,7 +51,13 @@ export default class PackageRequest {
      * PackageResolver
      */
     this.resolver = resolver;
+    /**
+     * 可选包标志
+     */
     this.optional = req.optional;
+    /**
+     * 备注
+     */
     this.hint = req.hint;
     /**
      * 当前请求的包名+版本号
@@ -258,6 +267,11 @@ export default class PackageRequest {
    * After all unique versions have been discovered, so the best available version
    * is found.
    */
+  /**
+   * 对与现有版本匹配的软件包进行最终解析。
+   * 在发现所有唯一版本之后，便找到了最佳可用版本。
+   * @param {*} info 
+   */
   resolveToExistingVersion(info: Manifest) {
     // get final resolved version
     const {range, name} = normalizePattern(this.pattern);
@@ -325,6 +339,7 @@ export default class PackageRequest {
     }
 
     // validate version info
+    // 验证要请求的依赖包信息准确
     PackageRequest.validateVersionInfo(info, this.reporter);
 
     //
@@ -407,6 +422,11 @@ export default class PackageRequest {
    * TODO description
    */
 
+  /**
+   * 校验依赖信息是否合法
+   * @param {*} info 
+   * @param {*} reporter 
+   */ 
   static validateVersionInfo(info: Manifest, reporter: Reporter) {
     // human readable name to use in errors
     const human = `${info.name}@${info.version}`;
@@ -424,6 +444,10 @@ export default class PackageRequest {
    * Returns the package version if present, else defaults to the uid
    */
 
+  /**
+   * 获取依赖包的版本
+   * @param {*} info 
+   */ 
   static getPackageVersion(info: Manifest): string {
     // TODO possibly reconsider this behaviour
     return info.version === undefined ? info._uid : info.version;

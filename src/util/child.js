@@ -57,6 +57,10 @@ export function spawnp(program: string, args: Array<string>, opts?: Object): Pro
 
 const spawnedProcesses = {};
 
+/**
+ * 杀掉全部spawn中的进程
+ * @param {*} signal 
+ */
 export function forwardSignalToSpawnedProcesses(signal: string) {
   for (const key of Object.keys(spawnedProcesses)) {
     spawnedProcesses[key].kill(signal);

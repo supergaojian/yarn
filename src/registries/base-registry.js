@@ -65,6 +65,9 @@ export default class BaseRegistry {
      * 使用默认rc标志
      */
     this.enableDefaultRc = enableDefaultRc;
+    /**
+     * 无效yarnrc文件路径
+     */
     this.extraneousRcFiles = extraneousRcFiles;
   }
 

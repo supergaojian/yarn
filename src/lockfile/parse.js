@@ -18,10 +18,22 @@ type Token = {
   value: boolean | number | string | void,
 };
 
+/**
+ * 解析yarn.lock文件结果状态
+ */
 export type ParseResultType = 'merge' | 'success' | 'conflict';
 
+/**
+ * 解析yarn.lock文件结果
+ */
 export type ParseResult = {
+  /**
+   * 解析状态
+   */
   type: ParseResultType,
+  /**
+   * yarn.lock内容
+   */
   object: Object,
 };
 
@@ -425,6 +437,11 @@ function parseWithConflict(str: string, fileLoc: string): ParseResult {
   }
 }
 
+/**
+ * 解析yarn.lock内容
+ * @param {*} str yarn.lock全文内容
+ * @param {*} fileLoc yarn.lock文件地址
+ */
 export default function(str: string, fileLoc: string = 'lockfile'): ParseResult {
   str = stripBOM(str);
   return hasMergeConflicts(str) ? parseWithConflict(str, fileLoc) : {type: 'success', object: parse(str, fileLoc)};

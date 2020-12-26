@@ -57,17 +57,53 @@ export type InstallCwdRequest = {
 
 type Flags = {
   // install
+  /**
+   * 保存网络流量的HAR输出
+   */
   har: boolean,
+  /**
+   * 忽略平台检查
+   */
   ignorePlatform: boolean,
+  /**
+   * 忽略引擎检查
+   */
   ignoreEngines: boolean,
+  /**
+   * 忽略optional dependencies
+   */
   ignoreOptional: boolean,
+  /**
+   * 创建到node_modules中重复模块的硬链接
+   */
   linkDuplicates: boolean,
+  /**
+   * 通过安装其兄弟workspace的远程副本来专注于单个workspace
+   */
   force: boolean,
+  /**
+   * 只允许一个版本的软件包
+   */
   flat: boolean,
+  /**
+   * 读取或生成yarn.lock
+   */
   lockfile: boolean,
+  /**
+   * 不生成yarn.lock
+   */
   pureLockfile: boolean,
+  /**
+   * 不生成yarn.lock，如果需要更新则失败
+   */
   frozenLockfile: boolean,
+  /**
+   * 运行安装而不检查是否安装了node_modules
+   */
   skipIntegrityCheck: boolean,
+  /**
+   * 安装将验证软件包文件树的一致性
+   */
   checkFiles: boolean,
   audit: boolean,
 
@@ -77,6 +113,9 @@ type Flags = {
   optional: boolean,
   exact: boolean,
   tilde: boolean,
+  /**
+   * 忽略workspace根结点检查
+   */
   ignoreWorkspaceRootCheck: boolean,
 
   // outdated, update-interactive
@@ -135,6 +174,11 @@ function getUpdateInstaller(installationMethod: InstallationMethod): ?string {
   return null;
 }
 
+/**
+ * 规范化用户配置
+ * @param {*} config 
+ * @param {*} rawFlags 
+ */
 function normalizeFlags(config: Config, rawFlags: Object): Flags {
   const flags = {
     // install
@@ -208,6 +252,9 @@ export class Install {
     this.scripts = new PackageInstallScripts(config, this.resolver, this.flags.force);
   }
 
+  /**
+   * 配置项
+   */
   flags: Flags;
   /**
    * root package使用的仓库
@@ -244,8 +291,8 @@ export class Install {
 
   /**
    * 从当前目录清单创建依赖项请求列表
-   * @param {*} excludePatterns
-   * @param {*} ignoreUnusedPatterns 
+   * @param {*} excludePatterns 忽略
+   * @param {*} ignoreUnusedPatterns 忽略未使用
    */
   async fetchRequestFromCwd(
     excludePatterns?: Array<string> = [],
@@ -400,7 +447,7 @@ export class Install {
          */
         const workspaces = await this.config.resolveWorkspaces(workspacesRoot, workspaceManifestJson);
         /**
-         * workspace子项目package实例
+         * workspace项目package实例
          */
         workspaceLayout = new WorkspaceLayout(workspaces, this.config);
 
@@ -491,6 +538,10 @@ export class Install {
    * TODO description
    */
 
+  /**
+   * 将命令参数当作要安装的依赖包添加到请求集合中
+   * @param {*} requests 
+   */ 
   prepareRequests(requests: DependencyRequestPatterns): DependencyRequestPatterns {
     return requests;
   }
@@ -638,14 +689,28 @@ export class Install {
     const steps: Array<(curr: number, total: number) => Promise<{bailout: boolean} | void>> = [];
 
     const {
+      /**
+       * 全部需要请求的依赖包
+       */
       requests: depRequests,
+      /**
+       * 全部依赖包@版本（包括workspace自身）
+       */
       patterns: rawPatterns,
+      /**
+       * 忽略的依赖包@版本
+       */
       ignorePatterns,
+      /**
+       * workspace项目package实例
+       */
       workspaceLayout,
+      /**
+       * 当前项目的package.json
+       */
       manifest,
     } = await this.fetchRequestFromCwd();
     let topLevelPatterns: Array<string> = [];
-
     const artifacts = await this.integrityChecker.getArtifacts();
 
     if (artifacts) {
@@ -654,6 +719,7 @@ export class Install {
     }
 
     if (compatibility.shouldCheck(manifest, this.flags)) {
+      // 需要兼容性检查增加checkingManifest步骤
       steps.push(async (curr: number, total: number) => {
         this.reporter.step(curr, total, this.reporter.lang('checkingManifest'), emoji.get('mag'));
         await this.checkCompatibility();
@@ -800,6 +866,7 @@ export class Install {
     }
 
     let currentStep = 0;
+
     for (const step of steps) {
       const stepResult = await step(++currentStep, steps.length);
       if (stepResult && stepResult.bailout) {
@@ -880,6 +947,10 @@ export class Install {
    * TODO
    */
 
+  /**
+   * 只允许一个版本的软件包处理
+   * @param {*} patterns 
+   */ 
   async flatten(patterns: Array<string>): Promise<Array<string>> {
     if (!this.flags.flat) {
       return patterns;
@@ -1307,9 +1378,12 @@ export async function wrapLifecycle(config: Config, flags: Object, factory: () =
   await config.executeLifecycleScript('postinstall');
 
   if (!config.production) {
+    // 非production环境
     if (!config.disablePrepublish) {
+      // 执行prepublish
       await config.executeLifecycleScript('prepublish');
     }
+    // 执行prepare
     await config.executeLifecycleScript('prepare');
   }
 }

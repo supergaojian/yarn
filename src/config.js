@@ -33,6 +33,9 @@ export type ConfigOptions = {
   globalFolder?: ?string,
   linkFolder?: ?string,
   offline?: boolean,
+  /**
+   * 仅当本地缓存中不存在依赖项时才使用网络
+   */
   preferOffline?: boolean,
   pruneOfflineMirror?: boolean,
   enableMetaFolder?: boolean,
@@ -137,14 +140,30 @@ export default class Config {
    * 默认true
    */
   looseSemver: boolean;
+  /**
+   * 当前是否离线标志
+   */
   offline: boolean;
+  /**
+   * 仅当本地缓存中不存在依赖项时才使用网络
+   */
   preferOffline: boolean;
+
   pruneOfflineMirror: boolean;
   enableMetaFolder: boolean;
   enableLockfileVersions: boolean;
   linkFileDependencies: boolean;
+  /**
+   * 忽略平台校验
+   */
   ignorePlatform: boolean;
+  /**
+   * 设置程序包时生成bin链接标志
+   */
   binLinks: boolean;
+  /**
+   * 从当前存储库更新程序包校验
+   */
   updateChecksums: boolean;
 
   // cache packages in offline mirror folder as new .tgz files
@@ -190,7 +209,9 @@ export default class Config {
    */
   requestManager: RequestManager;
 
-  //
+  /**
+   * node_modules输出文件路径
+   */
   modulesFolder: ?string;
 
   /**
@@ -203,7 +224,9 @@ export default class Config {
    */
   cacheFolder: string;
 
-  //
+  /**
+   * 临时文件夹
+   */
   tempFolder: string;
 
   /**
@@ -213,7 +236,7 @@ export default class Config {
 
   // Whether we should ignore executing lifecycle scripts
   /**
-   * 忽略hook标志
+   * 忽略生命周期钩子标志
    */
   ignoreScripts: boolean;
 
@@ -222,8 +245,14 @@ export default class Config {
    */
   production: boolean;
 
+  /**
+   * 禁止执行Prepublish钩子
+   */
   disablePrepublish: boolean;
 
+  /**
+   * 不显示交互提示
+   */
   nonInteractive: boolean;
 
   plugnplayPersist: boolean;
@@ -237,8 +266,14 @@ export default class Config {
    * 开启workspaces标志
    */
   workspacesEnabled: boolean;
+  /**
+   * 开启workspaces onhoist标志
+   */
   workspacesNohoistEnabled: boolean;
 
+  /**
+   * 离线缓存文件地址
+   */
   offlineCacheFolder: ?string;
 
   /**
@@ -273,11 +308,20 @@ export default class Config {
    */
   commandName: string;
 
+  /**
+   * 通过安装其兄弟workspace的远程副本来专注于单个workspace
+   */
   focus: boolean;
+  /**
+   * 专用的workspace路径
+   */
   focusedWorkspaceName: string;
 
   autoAddIntegrity: boolean;
 
+  /**
+   * 一次性密码进行两因素验证
+   */
   otp: ?string;
 
   /**
@@ -301,6 +345,11 @@ export default class Config {
    * Get a config option from our yarn config.
    */
 
+  /**
+   * 获取yarn仓库实例配置
+   * @param {*} key 
+   * @param {*} resolve 
+   */ 
   getOption(key: string, resolve: boolean = false): mixed {
     const value = this.registries.yarn.getOption(key);
 
@@ -377,6 +426,7 @@ export default class Config {
     for (const key of Object.keys(registries)) {
       const Registry = registries[key];
 
+      // yarn支持过滤无效yarnrc文件路径
       const extraneousRcFiles = Registry === registries.yarn ? this.extraneousYarnrcFiles : [];
 
       // instantiate registry
@@ -442,6 +492,7 @@ export default class Config {
       const preferredCacheFolder = opts.preferredCacheFolder || this.getOption('preferred-cache-folder', true);
 
       if (preferredCacheFolder) {
+        // 用户配置的缓存文件放到第一位
         preferredCacheFolders = [String(preferredCacheFolder)].concat(preferredCacheFolders);
       }
 
@@ -450,6 +501,7 @@ export default class Config {
         fs.constants.W_OK | fs.constants.X_OK | fs.constants.R_OK, // eslint-disable-line no-bitwise
       );
       for (const skippedEntry of cacheFolderQuery.skipped) {
+        // 针对没有权限的文件夹反馈warning
         this.reporter.warn(this.reporter.lang('cacheFolderSkipped', skippedEntry.folder));
       }
 
@@ -460,6 +512,7 @@ export default class Config {
     }
 
     if (!cacheRootFolder) {
+      // 没有缓存文件夹抛出异常
       throw new MessageError(this.reporter.lang('cacheFolderMissing'));
     } else {
       this._cacheRootFolder = String(cacheRootFolder);
@@ -536,6 +589,7 @@ export default class Config {
     }
 
     if (this.workspaceRootFolder && !this.workspacesEnabled) {
+      // 当前是workspace项目，但却禁止了workspace则抛出异常
       throw new MessageError(this.reporter.lang('workspacesDisabled'));
     }
   }
@@ -632,6 +686,10 @@ export default class Config {
    * Generate an absolute module path.
    */
 
+  /**
+   * 拼接缓存依赖包路径
+   * 缓存路径 + npm源-包名-版本-integrity + node_modules + 包名
+   */
   generateModuleCachePath(pkg: ?PackageReference): string {
     invariant(this.cacheFolder, 'No package root');
     invariant(pkg, 'Undefined package');
@@ -750,8 +808,7 @@ export default class Config {
    */
 
   /**
-   * 了解文件夹输入是否为有效的模块文件夹。
-   * 成功设置文件夹后，我们将输出一个yarn元数据文件，因此将其用作标记。
+   * 根据传入的地址判断文件是否存在
    * @param {*} dest 
    */
   async isValidModuleDest(dest: string): Promise<boolean> {
@@ -789,7 +846,13 @@ export default class Config {
    * Read normalized package info according yarn-metadata.json
    * throw an error if package.json was not found
    */
-
+  /**
+   * 根据yarn-metadata.json读取标准化的包装信息
+   * 如果找不到package.json则抛出错误
+   * @param {*} dir 目录地址
+   * @param {*} priorityRegistry 使用的仓库
+   * @param {*} isRoot 是否为根目录
+   */
   readManifest(dir: string, priorityRegistry?: RegistryNames, isRoot?: boolean = false): Promise<Manifest> {
     return this.getCache(`manifest-${dir}`, async (): Promise<Manifest> => {
       const manifest = await this.maybeReadManifest(dir, priorityRegistry, isRoot);
@@ -852,7 +915,9 @@ export default class Config {
   /**
    * Read the root manifest.
    */
-
+  /**
+   * 读取根结点的package.json
+   */
   readRootManifest(): Promise<Manifest> {
     return this.readManifest(this.cwd, 'npm', true);
   }

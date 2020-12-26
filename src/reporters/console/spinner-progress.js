@@ -3,6 +3,9 @@
 import type {Stdout} from '../types.js';
 import {writeOnNthLine, clearNthLine} from './util.js';
 
+/**
+ * Spinner基础类
+ */
 export default class Spinner {
   constructor(stdout: Stdout = process.stderr, lineNumber?: number = 0) {
     this.current = 0;

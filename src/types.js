@@ -69,42 +69,95 @@ type Dependencies = {
   [key: string]: string,
 };
 
+/**
+ * yarn workspace配置
+ */
 export type WorkspacesConfig = {
+  /**
+   * 属于workspace的依赖包
+   */
   packages?: Array<string>,
+  /**
+   * 不被workspace依赖提升的包
+   */
   nohoist?: Array<string>,
 };
 
-// package.json
+/**
+ * package.json
+ */
 export type Manifest = {
   _registry?: ?RegistryNames,
   _loc?: ?string,
 
+  /**
+   * 包名
+   */
   name: string,
+  /**
+   * 版本
+   */
   version: string,
 
+  /**
+   * 是否私有
+   */
   private?: boolean,
 
+  /**
+   * 作者信息
+   */
   author?: {
+    /**
+     * 作者名
+     */
     name?: string,
+    /**
+     * 作者邮箱
+     */
     email?: string,
+    /**
+     * 作者相关地址
+     */
     url?: string,
   },
 
+  /**
+   * 包主页
+   */
   homepage?: string,
   flat?: boolean,
+  /**
+   * 证书
+   */
   license?: string,
+  /**
+   * 证书描述
+   */
   licenseText?: string,
   noticeText?: string,
 
   readme?: string,
   readmeFilename?: string,
 
+  /**
+   * 包所在git仓库
+   */
   repository?: {
     type: 'git',
+    /**
+     * 包所在git仓库地址
+     */
     url: string,
   },
 
+  /**
+   * bug地址
+   */
   bugs?: {
+    /**
+     * 反馈bug地址
+     */
     url: string,
   },
 
@@ -130,10 +183,16 @@ export type Manifest = {
 
   man?: Array<string>,
 
+  /**
+   * 包所带的可执行命令
+   */
   bin?: {
     [name: string]: string,
   },
 
+  /**
+   * 包内部执行命令
+   */
   scripts?: {
     [name: string]: string,
   },
@@ -145,9 +204,21 @@ export type Manifest = {
   os?: Array<string>,
   cpu?: Array<string>,
 
+  /**
+   * 依赖包
+   */
   dependencies?: Dependencies,
+  /**
+   * 开发时依赖包
+   */
   devDependencies?: Dependencies,
+  /**
+   * 需前置引入的依赖包
+   */
   peerDependencies?: Dependencies,
+  /**
+   * 可选择的依赖包
+   */
   optionalDependencies?: Dependencies,
 
   dependenciesMeta?: DependenciesMeta,
@@ -164,6 +235,9 @@ export type Manifest = {
   files?: Array<string>,
   main?: string,
 
+  /**
+   * yarn workspace配置
+   */
   workspaces?: Array<string> | WorkspacesConfig,
 
   // This flag is true when we add a new package with `yarn add <mypackage>`.
